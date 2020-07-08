@@ -1,5 +1,6 @@
 *.mp3
-philharmonia/
+**/philharmonia
+**/__pycache__
 *.zip
 *.pyc
 
