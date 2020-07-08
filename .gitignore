@@ -3,5 +3,6 @@
 **/__pycache__
 *.zip
 *.pyc
-
+**/.ipynb_checkpoints
+*.DS_Store
 *.jpg
