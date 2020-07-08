@@ -44,7 +44,7 @@ def main(path_to_audio, params):
         features = (features - features.mean())/features.std()
         
     # plot an example feature map
-    utils.plot_features(features[0])
+#     utils.plot_features(features[0])
     
 
     # do PCA 
@@ -63,9 +63,7 @@ def main(path_to_audio, params):
 
     axes[1].imshow(sk_pca.get_covariance())
     axes[1].set_title('covariance')
-    fig.show()
     fig.savefig(params['output_path'])
-    plt.show(block=False)
     
     
 if __name__ == "__main__":
@@ -115,9 +113,11 @@ if __name__ == "__main__":
     params['mfcc_kwargs']['melkwargs'] = {}
     params['mfcc_kwargs']['melkwargs']['n_fft'] = \
                         int(args.n_fft * args.sample_rate)
-    params['normalize_features'] = not args.no_normalization
+    params['normalize_features'] =  not args.no_normalization
     params['output_path'] = args.output_path
     
     print(f'PARAMS:\n{params}')
     
     main(args.path_to_audio, params)
+    print('done!')
+    print(f'output written to {params["output_path"]}')

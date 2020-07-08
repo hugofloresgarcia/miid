@@ -6,6 +6,7 @@ import ised.core as core
 import ised.utils as utils
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
+import os
 plt.ioff()
 import argparse
 
@@ -97,6 +98,12 @@ if __name__ == "__main__":
     if args.target is None:
         args.target = args.classes[0]
     
+    output_dir = 'week2_'+'_'.join(args.classes)
+    output_dir = os.path.join(os.getcwd(), output_dir)
+    if not os.path.exists(output_dir):
+        os.mkdir(output_dir)
+    
+    
     
     # we only want to use 2 classes from the dataset
     dset_path = './data/philharmonia/all-samples/metadata.csv'
@@ -160,12 +167,14 @@ if __name__ == "__main__":
             # reweigh our feature vector
             model.reweigh_features()
             
-            do_PCA(model, f'./week2_output/train_iter_{i+1}.jpg')
+            do_PCA(model, f'{output_dir}/train_iter_{i+1}.jpg')
 
             print(f'recorded examples:\t{len(model.examples)-1}')
                 
     # finally, compare no weights vs weight
-    do_PCA(model, f'./week2_output/PCA_weights.jpg', weights=True)
-    do_PCA(model, f'./week2_output/PCA_noweights.jpg', weights=False)
+    do_PCA(model, f'{output_dir}/PCA_weights.jpg', weights=True)
+    do_PCA(model, f'{output_dir}/PCA_noweights.jpg', weights=False)
     
+    print('done!')
+    print(f'output written to {output_dir}')
     exit(0)

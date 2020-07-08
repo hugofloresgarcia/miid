@@ -1,7 +1,7 @@
 # hugo's summer milestones
 
 ## install requirements (python3)
-`pip3 install requirements.txt`
+`pip3 install -r requirements.txt`
 
 ## week 1 
 

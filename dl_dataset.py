@@ -52,6 +52,7 @@ if __name__ == "__main__":
     
     # download the zip
     print(f'downloading from {url}')
+    print('this may take a while ? :/ i think its like 250MB')
     urllib.request.urlretrieve(url, f'{save_path}.zip')
     
     # extract everything recursively

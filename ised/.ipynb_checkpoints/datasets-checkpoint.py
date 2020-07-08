@@ -20,7 +20,7 @@ class PhilharmoniaSet(Dataset):
     def __init__(self, path_to_csv, classes: tuple=None):
         super().__init__()
         
-        assert os.path.exists(path_to_csv), f"couldn't find {path_to_audio}"
+        assert os.path.exists(path_to_csv), f"couldn't find {path_to_csv}"
         # generate a list of dicts from our dataframe
         self.metadata = pd.read_csv(path_to_csv).to_dict('records')
         
