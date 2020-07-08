@@ -1,3 +1,6 @@
 *.mp3
-./data/philharmonia
+philharmonia/
+*.zip
+*.pyc
+
 *.jpg
