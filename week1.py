@@ -22,8 +22,10 @@ def main(path_to_audio, params):
     audio, old_sr = torchaudio.load(filepath)
     print('audio loaded :)')
 
+
     # downmix from stereo if needed
     if audio.size()[-2] == 2:
+        print('found stereo mix. downmixing')
         audio = audio.mean(dim=(-2,))
 
     # resample 
@@ -31,7 +33,8 @@ def main(path_to_audio, params):
 
     # reshape our audio into 1 second chunks
     chunk_len = int(chunk_len * sr)
-    audio = audio[:len(audio)//chunk_len * chunk_len].view(-1, chunk_len)
+    audio = audio[:len(audio[0])//chunk_len * chunk_len].view(-1, chunk_len)
+
 
     # do mfcc
     MFCC = torchaudio.transforms.MFCC(**mfcc_kwargs)
@@ -42,15 +45,8 @@ def main(path_to_audio, params):
     # normalize
     if normalize_features:
         features = (features - features.mean())/features.std()
-        
-    # plot an example feature map
-#     utils.plot_features(features[0])
+
     
-
-    # do PCA 
-    pca = ised.PCA()
-    features_redux = pca.fit(features).transform(features, 2)
-
     sk_pca = PCA(2)
     sk_features_redux = sk_pca.fit(features).transform(features)
 

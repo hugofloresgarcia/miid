@@ -7,6 +7,7 @@
 
 ### reading: Constant Q Paper
 Notes are in: `readings/week1/const_q.md`
+an unrelated question: In the VGG paper, they say that a stack of two 3x3 convolutional layers (without spatial pooling in between) has an effective receptive field of 5x5. why? 
 
 ### coding skill
 Show me a PCA dimensional reduction scatter plot of the ISED dimensions.  Take an audio file, split into 1-second chunks. Represent as ISED dimensions (based on MFCCs) and show a scatter plot where each point represents a single one-second chunk.  Ideally, this should be an easy command line thing you run (could be a Jupyter notebook or an Colab thing).
