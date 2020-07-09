@@ -35,7 +35,6 @@ def main(path_to_audio, params):
     chunk_len = int(chunk_len * sr)
     audio = audio[:len(audio[0])//chunk_len * chunk_len].view(-1, chunk_len)
 
-
     # do mfcc
     MFCC = torchaudio.transforms.MFCC(**mfcc_kwargs)
 
