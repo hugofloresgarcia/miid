@@ -5,6 +5,9 @@
 
 ## week 1 
 
+### reading: Constant Q Paper
+Notes are in: `readings/week1/const_q.md`
+
 ### coding skill
 Show me a PCA dimensional reduction scatter plot of the ISED dimensions.  Take an audio file, split into 1-second chunks. Represent as ISED dimensions (based on MFCCs) and show a scatter plot where each point represents a single one-second chunk.  Ideally, this should be an easy command line thing you run (could be a Jupyter notebook or an Colab thing).
 
@@ -35,8 +38,6 @@ usage:
  
  ### coding skill
  Now show me something where (1) there's a scatter plot with 1 second segments of audio, some of which are of sound class A and some are of sound class B.  When you do the PCA then scatter plot, we'll see that class A and class B are close to each other (2) Then, after providing some labels to the system for the points, it reweights the dimensions. (3) Then you can show a new scatter plot where the classes are fartehr apart.
- 
- 
  
  ### coding deliverable
  
