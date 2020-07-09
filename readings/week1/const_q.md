@@ -81,3 +81,7 @@ Another cool thing to note is that you will always analyze the same amount of pe
 note: the constant q transform is not invertible because
 1. the number of samples betweeen calculations is greater than the analysis window length for the high-frequency bins. (i don't really understand what this means?)
 2. the bandwidth is less than the frequency sampling interval for the bins where Q=68
+
+Finally, the paper shows a set of violin examples, comparing the DFT to the Constant Q Transform. 
+
+In these figures, the Constant Q Transform is much easier to visualize, since harmonics are spaced equally regardless of starting pitch. 
