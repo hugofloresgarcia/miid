@@ -33,6 +33,7 @@ def main(path_to_audio, params):
 
     # reshape our audio into 1 second chunks
     chunk_len = int(chunk_len * sr)
+    
     audio = audio[:len(audio[0])//chunk_len * chunk_len].view(-1, chunk_len)
 
     # do mfcc

@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 import torchaudio
 from torch.utils.data import DataLoader
 from ised import datasets
@@ -9,7 +10,14 @@ import matplotlib.pyplot as plt
 import os
 plt.ioff()
 import argparse
+import datetime
 
+def get_time():
+    """
+    return a date string w dir-compatible formatting (no spaces or slashes)
+    """
+    t = datetime.datetime.now()
+    return ('_').join(t.strftime('%x').split('/')) + '_'+('.').join(t.strftime('%X').split(':'))
 
 def compute_features(audio, old_sr):
     # downmix if needed and resample
@@ -27,49 +35,45 @@ def compute_features(audio, old_sr):
     
     return features
 
-def do_PCA(model, output_dir=None, weights=True):
+def do_PCA(model, label, output_dir=None, weights=True):
     fig = plt.figure()
+    fig.suptitle(label)
     
     if weights:
-        axes = fig.subplots(1, 2)
-        
-        # get our complete feature map
-        fmap = model.get_feature_map()
-        # get negative and positive feature maps separately
-        nmap = model.get_feature_map('negative')
-        pmap = model.get_feature_map('positive')
-        
-        axes[1].imshow(model.weights.reshape(-1, 4))
-        axes[1].set_title('feature weights')
+        # get the complete, positive and negative examples
+        fmap = model.get_feature_map(label, both=True)
+        nmap = model.get_feature_map(label, others=True)
+        pmap = model.get_feature_map(label)
+        W = model.weights[label]
     else:
-        axes = fig.subplots(1, 2)
-        # get our complete feature map
         fmap = model.get_subset(None, as_tensor=True)
-        # get negative and positive feature maps separately
-        nmap = model.get_subset('negative', as_tensor=True)
-        pmap = model.get_subset('positive', as_tensor=True)
+        nmap = model.get_subset(label, others=True, as_tensor=True)
+        pmap = model.get_subset(label, others=False, as_tensor=True)
+        W = np.ones(model.weights[label].size())
     
-    # fit PCA to feature map
+    # now do PCA:
     pca = PCA(2)
-    fmap = pca.fit(fmap).transform(fmap)
-
-    # skip negative examples if we don't have any yet
-    if not len(nmap) == 0:
-        nmap = pca.transform(nmap)
-        axes[0].scatter(nmap[:, 0], nmap[:, 1], 
-                    label=other_classes)
-
-    # show scatter
+    pca.fit(fmap) # fit with both positive and negative
+    
+    # get transformed versions
     pmap = pca.transform(pmap)
-    axes[0].scatter(pmap[:, 0], pmap[:, 1], label=target_class)
+    nmap = pca.transform(nmap)
+    
+    # now do the plotting
+    axes = fig.subplots(1, 2)
+    axes[0].scatter(pmap[:, 0], pmap[:, 1], label=label, linewidth = 0.5)
+    axes[0].scatter(nmap[:, 0], nmap[:, 1], label=f'not {label}', linewidth=0.5)
     axes[0].legend()
-    axes[0].set_title('PCA scatter')
-
+    
+    img = axes[1].imshow(W.reshape(-1, 4))
+    axes[1].set_title('model weights')
+    fig.colorbar(img)
+    
     if output_dir is not None:
         fig.savefig(output_dir)
     
-    # don't show
     plt.close(fig)
+    
 
 
 if __name__ == "__main__":
@@ -98,11 +102,11 @@ if __name__ == "__main__":
     if args.target is None:
         args.target = args.classes[0]
     
-    output_dir = 'week2_'+'_'.join(args.classes)
+    output_dir = os.path.join('week2_experiments', 'exp_'+get_time())
+        
     output_dir = os.path.join(os.getcwd(), output_dir)
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
-    
     
     
     # we only want to use 2 classes from the dataset
@@ -141,7 +145,7 @@ if __name__ == "__main__":
 #     utils.show_example(target, jupyter=False)
 
     # create an ISED model to keep and update our weights and relevances
-    model = core.ISEDmodel(target=target['features'])
+    model = core.ISEDmodel(target=target['features'], label=target['instrument'])
 
     # main training loop
     for i, sample in enumerate(dloader):
@@ -153,27 +157,27 @@ if __name__ == "__main__":
         # compute the features
         sample['features'] = compute_features(sample['audio'], sample['sr'])
         # check to see if our example will be positive or negative
-        if sample['instrument'] == target['instrument']:
-            model.add_example(sample['features'], 'positive')
-        else:
-            model.add_example(sample['features'], 'negative')
-
-        fmap = model.get_feature_map()
-
-
+            
+        # add our sample to model
+        model.add_example(sample['features'], sample['instrument'])
 
         # show PCA every 
         if (i+1) % log_every == 0:
             # reweigh our feature vector
             model.reweigh_features()
-            
-            do_PCA(model, f'{output_dir}/train_iter_{i+1}.jpg')
 
+            for label in model.get_labels():
+                if not os.path.exists(f'{output_dir}/{label}'):
+                        os.mkdir(f'{output_dir}/{label}')
+                        
+                do_PCA(model, label, f'{output_dir}/{label}/train_iter_{i+1}.jpg')
+                
             print(f'recorded examples:\t{len(model.examples)-1}')
                 
-    # finally, compare no weights vs weight
-    do_PCA(model, f'{output_dir}/PCA_weights.jpg', weights=True)
-    do_PCA(model, f'{output_dir}/PCA_noweights.jpg', weights=False)
+    # finally, compare no weights vs weights
+    for label in model.get_labels():
+        do_PCA(model, label,  f'{output_dir}/{label}/PCA_weights.jpg', weights=True)
+        do_PCA(model, label,  f'{output_dir}/{label}/PCA_noweights.jpg', weights=False)
     
     print('done!')
     print(f'output written to {output_dir}')
