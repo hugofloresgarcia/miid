@@ -1,6 +1,8 @@
 import numpy as np
 import torch
-import torchaudio.transforms as transforms
+from . import utils
+import torchaudio
+from .neighbors import distance, get_neighbors
 from sklearn.decomposition import PCA
 
 
@@ -11,9 +13,7 @@ def delta(x: torch.Tensor):
     result = []
     for timestep in range(x.size()[1]-1):
         result.append((x[:, timestep] - x[:, timestep+1]).tolist())
-    
-    
-    
+
     result = torch.Tensor(result).permute(1, 0)
     return result
 
@@ -30,12 +30,6 @@ def features(mfcc: torch.Tensor):
     dvar = dmfcc.var(dim=-1)
     
     return torch.cat([fmean, fvar, dmean, dvar])
-    
-def distance(a, b):
-    """
-    euclidean distance
-    """
-    return np.sqrt(torch.sum((a-b)**2))
 
 def relevance(s, sp, sn=None):
     """
@@ -45,21 +39,31 @@ def relevance(s, sp, sn=None):
         return 1 / distance(s, sp)
     else:
         return distance(s, sn) / (distance(s, sn) + distance (s, sp))
-    
-    
-def nearest_neighbor(sample: torch.Tensor, examples: torch.Tensor):
-    if len(examples) == 0:
-        return None
-    # compute distances
-    distances = []
-    for e in examples:
-        distances.append(distance(e, sample))
-    
-    # get the nearest neighbor's index
-    idxs = np.argsort(np.array(distances))
-    
-    # the nearest neighbor will be the last index 
-    return examples[idxs[-1]]
+
+
+def compute_features(audio, old_sr, sr, mfcc_kwargs, normalize=False):
+    """
+    get ISED feature vector from audio
+
+    Parameters:
+        audio: audio file with shape (channels, frames)
+        old_sr: original audio sample rate
+        mfcc_kwargs: keyworded arguments for torchaudio MFCC
+    """
+    # downmix if needed and resample
+    utils.ResampleDownmix(old_sr, sr)(audio)
+    # do mfcc
+    mfcc = torchaudio.transforms.MFCC(**mfcc_kwargs)(audio)
+    mfcc = mfcc.squeeze(0)
+
+    # compute ised features for mfcc feature map
+    feats = features(mfcc)
+
+    # normalize to mean 0 and std 1
+    if normalize:
+        feats = (feats - feats.mean()) / feats.std()
+
+    return feats
     
     
 class ISEDmodel:
@@ -70,7 +74,7 @@ class ISEDmodel:
         Parameters:
         target (torch.Tensor): our initial positive example (a feature vector)
         """
-        self.target = {'features': target,'label': label}
+        self.target = {'features': target, 'label': label}
         self.weights = {label: torch.ones(target.size())}
         self.examples = []
         
@@ -142,11 +146,11 @@ class ISEDmodel:
         self.examples.append(e)
         
         # add our relevance
-        e['relevance'] = self.relevance(e)
+        # e['relevance'] = self.relevance(e)
         # this is hacky but it will do for now
-        self.examples.pop()
+        # self.examples.pop()
         
-        self.examples.append(e)
+        # self.examples.append(e)
         
     def relevance(self, e):
         r = {}
@@ -215,8 +219,8 @@ class ISEDmodel:
             others = self(others, e['label'])
         
         # get the nearest neighbors
-        p = nearest_neighbor(e['features'], me)
-        n = nearest_neighbor(e['features'], others)
+        p = get_neighbors(1, e['features'], me)
+        n = get_neighbors(1, e['features'], others)
         
         return p, n
         
@@ -231,3 +235,40 @@ class ISEDmodel:
             return f * w
         else: 
             return None
+
+    def do_pca(self, label, num_components, weights=True):
+        """
+        do PCA on the dataset
+
+        params:
+            label: label that corresponds to positive examples
+            num_components: number of components to output
+            weights: if true, the feature vectors will be multiplied times
+                the model weights
+
+        returns:
+            tuple of the form (pmap, nmap) where
+                pmap == positive examples (that correspond to the label)
+                nmap == negative examples (that don't match the label)
+
+        """
+        if weights:
+            # get the complete, positive and negative examples
+            fmap = self.get_feature_map(label, both=True)
+            nmap = self.get_feature_map(label, others=True)
+            pmap = self.get_feature_map(label)
+
+        else:
+            fmap = self.get_subset(None, as_tensor=True)
+            nmap = self.get_subset(label, others=True, as_tensor=True)
+            pmap = self.get_subset(label, others=False, as_tensor=True)
+
+        # now do PCA:
+        pca = PCA(num_components)
+        pca.fit(fmap)  # fit with both positive and negative
+
+        # get transformed versions
+        pmap = pca.transform(pmap)
+        nmap = pca.transform(nmap)
+
+        return pmap, nmap

@@ -1,64 +1,29 @@
-import torch
+import os
+import argparse
+
 import numpy as np
-import torchaudio
 from torch.utils.data import DataLoader
+
 from ised import datasets
 import ised.core as core
 import ised.utils as utils
-from sklearn.decomposition import PCA
+
 import matplotlib.pyplot as plt
-import os
 plt.ioff()
-import argparse
-import datetime
 
-def get_time():
-    """
-    return a date string w dir-compatible formatting (no spaces or slashes)
-    """
-    t = datetime.datetime.now()
-    return ('_').join(t.strftime('%x').split('/')) + '_'+('.').join(t.strftime('%X').split(':'))
 
-def compute_features(audio, old_sr):
-    # downmix if needed and resample
-    transform = utils.ResampleDownmix(old_sr, sr)(audio)
-    # do mfcc
-    mfcc = torchaudio.transforms.MFCC(**mfcc_kwargs)(audio)
-    mfcc = mfcc.squeeze(0)
-
-    # compute ised features for mfcc feature map
-    features = core.features(mfcc)
-
-    # normalize to mean 0 and std 1
-    if normalize_features:
-        features = (features - features.mean())/features.std()
-    
-    return features
 
 def do_PCA(model, label, output_dir=None, weights=True):
     fig = plt.figure()
     fig.suptitle(label)
     
+    pmap, nmap = model.do_pca(label, num_components=2, weights=weights)
+
     if weights:
-        # get the complete, positive and negative examples
-        fmap = model.get_feature_map(label, both=True)
-        nmap = model.get_feature_map(label, others=True)
-        pmap = model.get_feature_map(label)
         W = model.weights[label]
     else:
-        fmap = model.get_subset(None, as_tensor=True)
-        nmap = model.get_subset(label, others=True, as_tensor=True)
-        pmap = model.get_subset(label, others=False, as_tensor=True)
         W = np.ones(model.weights[label].size())
-    
-    # now do PCA:
-    pca = PCA(2)
-    pca.fit(fmap) # fit with both positive and negative
-    
-    # get transformed versions
-    pmap = pca.transform(pmap)
-    nmap = pca.transform(nmap)
-    
+
     # now do the plotting
     axes = fig.subplots(1, 2)
     axes[0].scatter(pmap[:, 0], pmap[:, 1], label=label, linewidth = 0.5)
@@ -73,7 +38,6 @@ def do_PCA(model, label, output_dir=None, weights=True):
         fig.savefig(output_dir)
     
     plt.close(fig)
-    
 
 
 if __name__ == "__main__":
@@ -102,7 +66,7 @@ if __name__ == "__main__":
     if args.target is None:
         args.target = args.classes[0]
     
-    output_dir = os.path.join('week2_experiments', 'exp_'+get_time())
+    output_dir = os.path.join('week2_experiments', 'exp_'+ utils.get_time())
         
     output_dir = os.path.join(os.getcwd(), output_dir)
     if not os.path.exists(output_dir):
@@ -140,7 +104,7 @@ if __name__ == "__main__":
     # retrieve our "target" example
     target = dset.get_example(target_class)
     # compute our feature vector (without ISED weights)
-    target['features'] = compute_features(target['audio'], target['sr'])
+    target['features'] = core.compute_features(target['audio'], target['sr'], sr, mfcc_kwargs)
 
 #     utils.show_example(target, jupyter=False)
 
@@ -155,7 +119,7 @@ if __name__ == "__main__":
         # debatch our samples
         sample = datasets.debatch(sample)
         # compute the features
-        sample['features'] = compute_features(sample['audio'], sample['sr'])
+        sample['features'] = core.compute_features(sample['audio'], sample['sr'], sr, mfcc_kwargs)
         # check to see if our example will be positive or negative
             
         # add our sample to model

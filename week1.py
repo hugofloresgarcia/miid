@@ -27,14 +27,17 @@ def main(path_to_audio, params):
     if audio.size()[-2] == 2:
         print('found stereo mix. downmixing')
         audio = audio.mean(dim=(-2,))
+        # restore channel dimension after downmixing
+        audio = audio.view(1, audio.size()[-1])
 
     # resample 
     torchaudio.transforms.Resample(old_sr, sr)(audio)
 
     # reshape our audio into 1 second chunks
     chunk_len = int(chunk_len * sr)
-    
-    audio = audio[:len(audio[0])//chunk_len * chunk_len].view(-1, chunk_len)
+    end = len(audio[0]) // chunk_len * chunk_len
+    audio = audio[:, 0:end]
+    audio = audio.view((-1, chunk_len))
 
     # do mfcc
     MFCC = torchaudio.transforms.MFCC(**mfcc_kwargs)
