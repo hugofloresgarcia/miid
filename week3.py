@@ -137,6 +137,9 @@ def run_experiment(exp):
             ised.utils.mkdir(f"{exp['output_dir']}/{exp['name']}") + '/' + f'{label}'
         )
 
+        # close fig when we're done
+        fig.close()
+
         # add a classifier
         plabels = [label for e in pmap]
         nlabels = [f'not {label}' for e in nmap]
