@@ -4,7 +4,7 @@ from . import utils
 plt.ioff()
 
 
-def get_figure(n_rows, n_cols, title):
+def get_figure(n_rows, n_cols, title=None):
     """
     a wrapper around plt.figure
     to minimize imports i guess?
@@ -14,12 +14,14 @@ def get_figure(n_rows, n_cols, title):
         fig.suptitle(title)
 
     axes = fig.subplots(n_rows, n_cols)
-    return axes
+    return fig, axes
 
 def plot_pca(ax, classes: dict, title=None):
     """
     pca scatterplot of labeled classes
     """
+
+
     if title is not None:
         ax.set_title(title)
 
@@ -33,9 +35,10 @@ def plot_pca(ax, classes: dict, title=None):
 def plot_features(ax, feature_vector: np.array, title='mfcc features'):
     fv = utils.assert_numpy(feature_vector)
 
-    ax.set_title(title)
-    ax.imshow(fv.reshape(-1, 4))
     plt.sca(ax)
+    plt.title(title)
+    plt.imshow(fv.reshape(-1, 4))
+
     plt.xticks([0, 1, 2, 3],
                ['mean', 'var', 'delta_mean', 'delta_var'],
                rotation=90)

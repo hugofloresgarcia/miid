@@ -34,8 +34,6 @@ usage:
                         skip normalization of feature vectors to mean 0 and std 1
       --output_path OUTPUT_PATH, -o OUTPUT_PATH
                         path to save plots to`
-                        
- ## week 2
  
  ### coding skill
  Now show me something where (1) there's a scatter plot with 1 second segments of audio, some of which are of sound class A and some are of sound class B.  When you do the PCA then scatter plot, we'll see that class A and class B are close to each other (2) Then, after providing some labels to the system for the points, it reweights the dimensions. (3) Then you can show a new scatter plot where the classes are fartehr apart.
@@ -70,3 +68,30 @@ usage:
       --sample_rate SAMPLE_RATE, -s SAMPLE_RATE
                             sample rate used for analysis (default: 8000)
       --n_mfcc N_MFCC       number of MFCCs (default: 13)
+      
+## week 2
+
+### coding skill
+(1) Replace the MFCC/delta-MFCC representation Bongjun built I-Sed on top of with VGG-ish embeddings & do week2.py on this representation.  (2) Build a (K) nearest neighbor classifier on top of the learned representation you built in week 2. Use Euclidean distance.  (3) Give me accuracy (percent correct labeling) comparison of a 3-nearest-neighbor classifier  between 4 different data reprsentations:   MFCCs, MFCCs-after-reweighting,  VGG-ish,  VGG-ish-after-reweighting.  Here reweighting = applying Fischer's linear discriminant to reweight the features in the way that you did last week.
+
+
+### coding deliverable
+
+download the dataset (if you haven't yet)
+
+`python3 dl_dataset.py`
+ 
+generate experiment configs
+
+`python3 week3/generate_experiments.py`
+
+feel free to change generate_experiments.py to run more or fewer experiments
+
+now, run the experiments
+
+`python3 week3.py --path_to_experiments week3/experiments`
+
+after the experiments are done, a table comparing all of the experiments
+will be available at `week3/experiments/output.csv`
+
+individual results for each experiment are stored in `week3/experiments`

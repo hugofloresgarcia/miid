@@ -1,15 +1,19 @@
 import numpy as np
 import torch
+from statistics import mode
 
 
 def distance(a, b):
     """
     euclidean distance
     """
-    return np.sqrt(torch.sum((a - b) ** 2))
+    return np.sqrt(np.sum((a - b) ** 2))
 
 
-def _arg_get_neighbors(num_neighbors: int, sample: torch.Tensor, examples: torch.Tensor):
+def _arg_get_neighbors(num_neighbors: int, sample: np.ndarray, examples: np.ndarray):
+    """
+    get index for nearest neighbors
+    """
     if len(examples) == 0:
         return None
     # compute distances
@@ -20,10 +24,13 @@ def _arg_get_neighbors(num_neighbors: int, sample: torch.Tensor, examples: torch
     # get the nearest neighbor's index
     idxs = np.argsort(np.array(distances))
 
-    return idxs[-1:(-1 - num_neighbors)]
+    return idxs[0:num_neighbors]
 
 
-def get_neighbors(num_neighbors: int, sample: torch.Tensor, examples: torch.Tensor):
+def get_neighbors(num_neighbors: int, sample: np.ndarray, examples: np.ndarray):
+    """
+    get nearest neighbors
+    """
     idxs = _arg_get_neighbors(num_neighbors, sample, examples)
     # the nearest neighbor will be the last index
     return examples[idxs]
@@ -40,4 +47,5 @@ class KNN:
 
     def predict(self, x, num_neighbors):
         idx = _arg_get_neighbors(num_neighbors, x, self.data)
-        return self.labels[idx]
+        # return the most popular neighbor
+        return mode(self.labels[idx])
