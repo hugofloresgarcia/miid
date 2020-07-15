@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+import matplotlib.pyplot as plt
 
 import yaml
 import os
@@ -138,7 +139,7 @@ def run_experiment(exp):
         )
 
         # close fig when we're done
-        fig.close()
+        plt.close(fig)
 
         # add a classifier
         plabels = [label for e in pmap]
