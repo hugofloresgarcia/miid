@@ -83,15 +83,15 @@ download the dataset (if you haven't yet)
  
 generate experiment configs
 
-`python3 week3/generate_experiments.py -o week3/experiments/my_experiments`
+`python3 week3/generate_experiments.py -o week3/experiments/MY_EXPERIMENT`
 
 feel free to change generate_experiments.py to run more or fewer experiments
 
 now, run the experiments
 
-`python3 week3.py -p week3/experiments/my_experiments`
+`python3 week3.py -p week3/experiments/MY_EXPERIMENT`
 
 after the experiments are done, a table comparing all of the experiments
-will be available at `week3/experiments/my_experiments/output.csv`
+will be available at `week3/experiments/MY_EXPERIMENT/output.csv`
 
-individual results for each experiment are stored in `week3/experiments`
+
