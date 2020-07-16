@@ -50,7 +50,7 @@ def assert_numpy(x):
     else:
         x = x
 
-    assert isinstance(x, np.ndarray)
+    assert isinstance(x, np.ndarray), "ruh row, something went wrong converting to numpy"
     return x
 
 def get_time():

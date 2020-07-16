@@ -65,6 +65,9 @@ def trim_or_pad(audio, length):
 
 def run_experiment(exp):
 
+    # --------------------------------------------
+    # SETUP
+    # --------------------------------------------
     # extract our params
     sr = exp['sr']
     # add our n_fft from window size param
@@ -96,11 +99,17 @@ def run_experiment(exp):
     # load our ised model with our target
     model = Model(target['features'], label=target['instrument'])
 
+    if exp['max_train'] is None:
+        exp['max_train'] = len(train_loader)
+
+    # --------------------------------------------
+    # TRAIN LOOP
+    # --------------------------------------------
+    print(f'training on {exp["max_train"]} samples')
     # now, train our ised model
     for idx, sample in enumerate(train_loader):
-        if exp['max_train'] is not None:
-            if idx > exp['max_train']:
-                break
+        if idx > exp['max_train']:
+            break
         # remove batch dimension
         sample = ised.datasets.debatch(sample)
 
@@ -112,8 +121,15 @@ def run_experiment(exp):
         # add example to our model
         model.add_example(sample['features'], sample['instrument'])
 
-    model.reweigh_features()  # weigh our features
+    # --------------------------------------------
+    # USE WEIGHTS??!??!!
+    # --------------------------------------------
+    if exp['model']['weights']:
+        model.reweigh_features()  # weigh our features
 
+    # --------------------------------------------
+    # KNN SETUP AND PCA ON MODEL
+    # --------------------------------------------
     # we will need one classifier per label
     classifiers = {}
 
@@ -135,7 +151,7 @@ def run_experiment(exp):
 
         # save fig
         fig.savefig(
-            ised.utils.mkdir(f"{exp['output_dir']}/{exp['name']}") + '/' + f'{label}'
+            ised.utils.mkdir(f"{exp['output_dir']}") + '/' + f'{label}'
         )
 
         # close fig when we're done
@@ -150,10 +166,15 @@ def run_experiment(exp):
         # add a KNN classifier for this particular label
         classifiers[label] = ised.neighbors.KNN(data, labels)
 
+    # --------------------------------------------
+    # VALIDATION
+    # --------------------------------------------
     # now, measure precision/accuracy with the validation set
     metrics = {}
     yt = []
     yp = []
+    wrong = []
+    right = []
     print(f'validating with {len(val_loader)} samples')
     for idx, sample in enumerate(val_loader):
         # remove batch dimension
@@ -164,7 +185,6 @@ def run_experiment(exp):
         sample['features'] = preprocessor(sample['audio'], sample['sr'])
 
         # now, do classification by label
-        sample['scores'] = {}
         y_pred = []
         y_true = []
         for label in model.get_labels():
@@ -180,8 +200,40 @@ def run_experiment(exp):
             y_pred.append(1 if pred == label else 0)
             y_true.append(1 if target == label else 0)
             # print(f'GROUND TRUTH: {sample["instrument"]}\tPRED: {pred}\tTARGET: {target}')
+
+        if y_true == y_pred:
+            right.append(ised.utils.assert_numpy(sample['features']))
+        else:
+            wrong.append(ised.utils.assert_numpy(sample['features']))
+
         yt.append(y_true)
         yp.append(y_pred)
+
+    # --------------------------------------------
+    # SECOND ROUND OF PCA PLOTS
+    # --------------------------------------------
+    for label in model.get_labels():
+        # get a model pca
+        pmap, nmap = model.do_pca(label, exp['pca']['num_components'], exp['model']['weights'])
+        fig, axes = plot_utils.get_figure(1, 2,
+                                          title=f'PCA_{label}_{exp["preprocessor"]["name"]}')
+
+        r = model.pca[label].transform(np.array(right))
+        w = model.pca[label].transform(np.array(wrong))
+        # plot pca
+        axes[0] = plot_utils.plot_pca(axes[0], {label: pmap, f'not_{label}': nmap,
+                                                'right': r, 'wrong': w})
+        W = model.weights[label]
+        # plot features
+        axes[1] = plot_utils.plot_features(axes[1], W, title='fischer weights')
+
+        # save fig
+        fig.savefig(
+            ised.utils.mkdir(f"{exp['output_dir']}") + '/' + f'{label}_validation'
+        )
+
+        # close fig when we're done
+        plt.close(fig)
 
     metrics['accuracy_score'] = sklearn.metrics.accuracy_score(yt, yp)
     metrics['precision'] = sklearn.metrics.precision_score(yt, yp, average='micro')
@@ -189,9 +241,16 @@ def run_experiment(exp):
     metrics['f1'] = sklearn.metrics.f1_score(yt, yp, average='micro')
 
     exp['metrics'] = metrics
-    print('experiment done!')
+    print('experiment done!\n')
 
-    return exp
+    output = dict(
+        name=exp['name'],
+        weights=exp['model']['weights'],
+        preprocessor=exp['preprocessor']['name'],
+        num_classes=len(dataset.classes),
+        metrics=metrics,
+    )
+    return output
 
 
 def load_experiments(exp_path, exp_list):
@@ -203,15 +262,15 @@ def load_experiments(exp_path, exp_list):
                     with open(filepath, 'r') as f:
                         exp = yaml.load(f)
                         exp_list.append(exp)
-            for dir in dirs:
-                new_root = os.path.join(root, dir)
-                load_experiments(new_root, exp_list)
+            # for dir in dirs:
+            #     new_root = os.path.join(root, dir)
+            #     load_experiments(new_root, exp_list)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--path_to_experiments',
+    parser.add_argument('--path_to_experiments','-p',
                         default='week3/experiments')
 
     args = parser.parse_args()
@@ -227,11 +286,12 @@ if __name__ == "__main__":
     load_experiments(exp_path, experiments)
     print(f'found {len(experiments)} experiments')
     for exp in experiments:
-        ised.utils.pretty_print(exp)
+        exp['output_dir'] = exp_path + '/' + exp['name']
+        # ised.utils.pretty_print(exp)
+        print(32*'-')
+        print(f'running {exp["name"]} with params {exp}')
         out = run_experiment(exp)
         out = ised.utils.flatten_dict(out)
         outputs.append(out)
         df = pd.DataFrame(outputs)
         df.to_csv(os.path.join(exp_path, 'output.csv'))
-
-
