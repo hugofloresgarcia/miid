@@ -77,13 +77,17 @@ usage:
 
 ### coding deliverable
 
+install requirements
+
+`pip3 install -r requirements.txt`
+
 download the dataset (if you haven't yet)
 
 `python3 dl_dataset.py`
  
 generate experiment configs
 
-`python3 week3/generate_experiments.py -o week3/experiments/MY_EXPERIMENT`
+`python3 week3/generate_experiments.py -o week3/experiments/EXPERIMENT_NAME_GOES_HERE`
 
 feel free to change generate_experiments.py to run more or fewer experiments
 
