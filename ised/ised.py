@@ -149,10 +149,10 @@ class Model:
 
             # VGGISH FIX
             # TODO: the last element in the vggish embedding is always 255. (why)
-            # TODO: this breaks fischer's criterion because the std deviation
-            # TODO: will always be 0, so you end up dividing by 0
-            # TODO: I'm currently replacing the nan by 0 (meaning that the feature will
-            # TODO: have no weight at all. should I be doing this?
+            #   this breaks fischer's criterion because the std deviation
+            #   will always be 0, so you end up dividing by 0
+            #   I'm currently replacing the nan by 0 (meaning that the feature will
+            #   have no weight at all). should I be doing this?
             for i, w in enumerate(self.weights[label]):
                 if np.isnan(w):
                     self.weights[label][i] = 0

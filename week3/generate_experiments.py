@@ -2,6 +2,11 @@ import argparse
 import yaml
 import os
 from itertools import product
+
+"""
+generate a cartesian product of all possible configs
+everything inside a list will be decomposed into subsets
+"""
 """
 MAKE SURE EVERYTHING (UNLESS ITS ANOTHER DICT) IS WRAPPED
 IN A LIST BECAUSE IT WILL TRY TO ITERATE OVER EVERYTHING

@@ -20,8 +20,6 @@ def plot_pca(ax, classes: dict, colors: dict = None, title=None):
     """
     pca scatterplot of labeled classes
     """
-
-
     if title is not None:
         ax.set_title(title)
 
