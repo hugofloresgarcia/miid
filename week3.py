@@ -64,7 +64,6 @@ def trim_or_pad(audio, length):
 
 
 def run_experiment(exp):
-
     # --------------------------------------------
     # SETUP
     # --------------------------------------------
@@ -137,25 +136,6 @@ def run_experiment(exp):
     for label in model.get_labels():
         # get a model pca
         pmap, nmap = model.do_pca(label, exp['pca']['num_components'], exp['model']['weights'])
-        fig, axes = plot_utils.get_figure(1, 2,
-                                          title=f'PCA_{label}_{exp["preprocessor"]["name"]}')
-
-        # plot pca
-        axes[0] = plot_utils.plot_pca(axes[0], {label: pmap, f'not_{label}': nmap})
-        if exp['model']['weights']:
-            W = model.weights[label]
-        else:
-            W = np.ones(model.weights[label].shape)
-        # plot features
-        axes[1] = plot_utils.plot_features(axes[1], W, title='fischer weights')
-
-        # save fig
-        fig.savefig(
-            ised.utils.mkdir(f"{exp['output_dir']}") + '/' + f'{label}'
-        )
-
-        # close fig when we're done
-        plt.close(fig)
 
         # add a classifier
         plabels = [label for e in pmap]
@@ -173,10 +153,12 @@ def run_experiment(exp):
     metrics = {}
     yt = []
     yp = []
-    wrong = []
-    right = []
-    print(f'validating with {len(val_loader)} samples')
+    wrong = {}
+    right = {}
+    print(f'validating with {int(0.7 * exp["max_train"])} samples')
     for idx, sample in enumerate(val_loader):
+        if idx > int(0.7 * exp['max_train']):
+            break
         # remove batch dimension
         sample = ised.datasets.debatch(sample)
 
@@ -193,39 +175,48 @@ def run_experiment(exp):
             x = ised.utils.assert_numpy(x)
             x = model.pca[label].transform(x.reshape(1, -1))
 
+            if label not in wrong:
+                wrong[label] = []
+            if label not in right:
+                right[label] = []
+
             # predict using KNN
             pred = classifiers[label].predict(x, exp['num_neighbors'])
             target = label if label == sample['instrument'] else f'not {label}'
 
+            if pred == target:
+                right[label].append(x.squeeze(0).tolist())
+            else:
+                wrong[label].append(x.squeeze(0).tolist())
+
             y_pred.append(1 if pred == label else 0)
             y_true.append(1 if target == label else 0)
-            # print(f'GROUND TRUTH: {sample["instrument"]}\tPRED: {pred}\tTARGET: {target}')
-
-        if y_true == y_pred:
-            right.append(ised.utils.assert_numpy(sample['features']))
-        else:
-            wrong.append(ised.utils.assert_numpy(sample['features']))
 
         yt.append(y_true)
         yp.append(y_pred)
 
     # --------------------------------------------
-    # SECOND ROUND OF PCA PLOTS
+    # ROUND OF PCA PLOTS
     # --------------------------------------------
     for label in model.get_labels():
         # get a model pca
         pmap, nmap = model.do_pca(label, exp['pca']['num_components'], exp['model']['weights'])
-        fig, axes = plot_utils.get_figure(1, 2,
-                                          title=f'PCA_{label}_{exp["preprocessor"]["name"]}')
+        fig, axes = plot_utils.get_figure(2, 2,
+                                          title=f'{exp["name"]}_{label}_{exp["preprocessor"]["name"]}')
 
-        r = model.pca[label].transform(np.array(right))
-        w = model.pca[label].transform(np.array(wrong))
+        r = np.array(right[label])
+        w = np.array(wrong[label])
+
         # plot pca
-        axes[0] = plot_utils.plot_pca(axes[0], {label: pmap, f'not_{label}': nmap,
-                                                'right': r, 'wrong': w})
+        axes[0][0] = plot_utils.plot_pca(axes[0][0], {label: pmap, f'not_{label}': nmap,
+                                                   'right': r, 'wrong': w}, title='train and test')
+
+        axes[1][0] = plot_utils.plot_pca(axes[1][0], {label: pmap, f'not_{label}': nmap}, title='train set')
+        axes[1][1] = plot_utils.plot_pca(axes[1][1], {'right': r, 'wrong': w}, title='test',
+                                                      colors=dict(right='g', wrong='r'))
         W = model.weights[label]
         # plot features
-        axes[1] = plot_utils.plot_features(axes[1], W, title='fischer weights')
+        axes[0][1] = plot_utils.plot_features(axes[0][1], W, title='fischer weights')
 
         # save fig
         fig.savefig(
@@ -249,6 +240,8 @@ def run_experiment(exp):
         preprocessor=exp['preprocessor']['name'],
         num_classes=len(dataset.classes),
         metrics=metrics,
+        pca_components=exp['pca']['num_components'],
+        neighbors=exp['num_neighbors']
     )
     return output
 
@@ -270,7 +263,7 @@ def load_experiments(exp_path, exp_list):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--path_to_experiments','-p',
+    parser.add_argument('--path_to_experiments', '-p',
                         default='week3/experiments')
 
     args = parser.parse_args()
@@ -288,7 +281,7 @@ if __name__ == "__main__":
     for exp in experiments:
         exp['output_dir'] = exp_path + '/' + exp['name']
         # ised.utils.pretty_print(exp)
-        print(32*'-')
+        print(32 * '-')
         print(f'running {exp["name"]} with params {exp}')
         out = run_experiment(exp)
         out = ised.utils.flatten_dict(out)

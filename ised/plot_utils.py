@@ -9,14 +9,14 @@ def get_figure(n_rows, n_cols, title=None):
     a wrapper around plt.figure
     to minimize imports i guess?
     """
-    fig = plt.figure()
+    fig = plt.figure(figsize=(16, 9))
     if title is not None:
         fig.suptitle(title)
 
     axes = fig.subplots(n_rows, n_cols)
     return fig, axes
 
-def plot_pca(ax, classes: dict, title=None):
+def plot_pca(ax, classes: dict, colors: dict = None, title=None):
     """
     pca scatterplot of labeled classes
     """
@@ -26,7 +26,10 @@ def plot_pca(ax, classes: dict, title=None):
         ax.set_title(title)
 
     for label, data in classes.items():
-        ax.scatter(data[:, 0], data[:, 1], label=label)
+        if colors is not None:
+            ax.scatter(data[:, 0], data[:, 1], s=30, c=colors[label], label=label, alpha=0.5)
+        else:
+            ax.scatter(data[:, 0], data[:, 1], s=30, label=label, alpha=0.5)
 
     ax.legend()
 

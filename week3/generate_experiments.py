@@ -8,10 +8,9 @@ IN A LIST BECAUSE IT WILL TRY TO ITERATE OVER EVERYTHING
 """
 experiments = {
     'max_train': [500],
-    'classes': [('cello', 'guitar'),
-                ('cello', 'guitar', 'english-horn'),
-                ('cello', 'guitar', 'english-horn', 'tuba'),
-                ('cello', 'guitar', 'english-horn', 'tuba', 'clarinet')],
+    'classes': [('french-horn', 'english-horn'),
+                ('french-horn', 'english-horn', 'tuba'),
+                ('french-horn', 'english-horn', 'tuba', 'clarinet')],
     'sr': [8000],
     'window_size': [90e-3],
     'preprocessor':

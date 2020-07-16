@@ -94,4 +94,12 @@ now, run the experiments
 after the experiments are done, a table comparing all of the experiments
 will be available at `week3/experiments/MY_EXPERIMENT/output.csv`
 
+#### some things I noticed while running a bunch of experiments
+- vggish + weights is the absolute winner, with about a 6% higher accuracy on most tests
+- the model doesn't scale well to a multiclass setting (one vs rest). classification accuracy drops from 
+90% to 70% from 2 -> 3 classes, and from 70%->50% from 3 -> 4 classes.
+- vggish without weights and ISED + weights perform similarly on a 2 class setting 
+- vggish without weights benefits from a 3rd ised dimension
+
+
 
