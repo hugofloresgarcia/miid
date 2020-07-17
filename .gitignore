@@ -6,6 +6,5 @@
 **/.ipynb_checkpoints
 *.DS_Store
 *.jpg
-**/week2
 **/.idea
 **/experiments
