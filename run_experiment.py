@@ -63,30 +63,30 @@ def trim_or_pad(audio, length):
     return audio
 
 
-def run_experiment(exp):
+def main(params):
     # --------------------------------------------
     # SETUP
     # --------------------------------------------
     # extract our params
-    sr = exp['sr']
+    sr = params['sr']
     # add our n_fft from window size param
-    window_size = exp['window_size']
-    if exp['preprocessor']['name'] == 'ised_features':
-        exp['preprocessor']['sr'] = exp['sr']
-        exp['preprocessor']['mfcc_kwargs']['melkwargs'] = {}
-        exp['preprocessor']['mfcc_kwargs']['melkwargs']['n_fft'] = int(window_size * sr)
+    window_size = params['window_size']
+    if params['preprocessor']['name'] == 'ised_features':
+        params['preprocessor']['sr'] = params['sr']
+        params['preprocessor']['mfcc_kwargs']['melkwargs'] = {}
+        params['preprocessor']['mfcc_kwargs']['melkwargs']['n_fft'] = int(window_size * sr)
     # our classes
-    classes = tuple(exp['classes'])
+    classes = tuple(params['classes'])
 
     # now, load our preprocessor
-    preprocessor = load_preprocessor(exp['preprocessor'])
+    preprocessor = load_preprocessor(params['preprocessor'])
 
     # load our training and test dataset
     path_to_csv = './data/philharmonia/all-samples/metadata.csv'
     dataset = ised.datasets.PhilharmoniaSet(path_to_csv, classes)
     train_loader, val_loader = ised.datasets.train_test_split(
         dataset, batch_size=1, val_split=0.3, shuffle=True,
-        random_seed=42)
+        random_seed=params['seed'])
 
     # load our initial target
     target = dataset.get_example(classes[0])
@@ -98,16 +98,16 @@ def run_experiment(exp):
     # load our ised model with our target
     model = Model(target['features'], label=target['instrument'])
 
-    if exp['max_train'] is None:
-        exp['max_train'] = len(train_loader)
+    if params['max_train'] is None:
+        params['max_train'] = len(train_loader)
 
     # --------------------------------------------
     # TRAIN LOOP
     # --------------------------------------------
-    print(f'training on {exp["max_train"]} samples')
+    print(f'training on {params["max_train"]} samples')
     # now, train our ised model
     for idx, sample in enumerate(train_loader):
-        if idx > exp['max_train']:
+        if idx > params['max_train']:
             break
         # remove batch dimension
         sample = ised.datasets.debatch(sample)
@@ -123,7 +123,7 @@ def run_experiment(exp):
     # --------------------------------------------
     # USE WEIGHTS??!??!!
     # --------------------------------------------
-    if exp['model']['weights']:
+    if params['model']['weights']:
         model.reweigh_features()  # weigh our features
 
     # --------------------------------------------
@@ -135,7 +135,7 @@ def run_experiment(exp):
     # now, let's log our PCA with weights/noweights
     for label in model.get_labels():
         # get a model pca
-        pmap, nmap = model.do_pca(label, exp['pca']['num_components'], exp['model']['weights'])
+        pmap, nmap = model.do_pca(label, params['pca']['num_components'], params['model']['weights'])
 
         # add a classifier
         plabels = [label for e in pmap]
@@ -155,9 +155,9 @@ def run_experiment(exp):
     yp = []
     wrong = {}
     right = {}
-    print(f'validating with {int(0.7 * exp["max_train"])} samples')
+    print(f'validating with {int(0.7 * params["max_train"])} samples')
     for idx, sample in enumerate(val_loader):
-        if idx > int(0.7 * exp['max_train']):
+        if idx > int(0.7 * params['max_train']):
             break
         # remove batch dimension
         sample = ised.datasets.debatch(sample)
@@ -181,7 +181,7 @@ def run_experiment(exp):
                 right[label] = []
 
             # predict using KNN
-            pred = classifiers[label].predict(x, exp['num_neighbors'])
+            pred = classifiers[label].predict(x, params['num_neighbors'])
             target = label if label == sample['instrument'] else f'not {label}'
 
             if pred == target:
@@ -200,27 +200,27 @@ def run_experiment(exp):
     # --------------------------------------------
     for label in model.get_labels():
         # get a model pca
-        pmap, nmap = model.do_pca(label, exp['pca']['num_components'], exp['model']['weights'])
+        pmap, nmap = model.do_pca(label, params['pca']['num_components'], params['model']['weights'])
         fig, axes = plot_utils.get_figure(2, 2,
-                                          title=f'{exp["name"]}_{label}_{exp["preprocessor"]["name"]}')
+                                          title=f'{params["name"]}_{label}_{params["preprocessor"]["name"]}')
 
         r = np.array(right[label])
         w = np.array(wrong[label])
 
-        # plot pca
-        axes[0][0] = plot_utils.plot_pca(axes[0][0], {label: pmap, f'not_{label}': nmap,
-                                                   'right': r, 'wrong': w}, title='train and test')
+        # # plot pca
+        # axes[0][0] = plot_utils.plot_pca(axes[0][0], {label: pmap, f'not_{label}': nmap,
+        #                                               'right': r, 'wrong': w}, title='train and test')
 
         axes[1][0] = plot_utils.plot_pca(axes[1][0], {label: pmap, f'not_{label}': nmap}, title='train set')
         axes[1][1] = plot_utils.plot_pca(axes[1][1], {'right': r, 'wrong': w}, title='test',
-                                                      colors=dict(right='g', wrong='r'))
+                                         colors=dict(right='g', wrong='r'))
         W = model.weights[label]
         # plot features
         axes[0][1] = plot_utils.plot_features(axes[0][1], W, title='fischer weights')
 
         # save fig
         fig.savefig(
-            ised.utils.mkdir(f"{exp['output_dir']}") + '/' + f'{label}_validation'
+            ised.utils.mkdir(f"{params['output_dir']}") + '/' + f'{label}_validation'
         )
 
         # close fig when we're done
@@ -231,60 +231,57 @@ def run_experiment(exp):
     metrics['recall'] = sklearn.metrics.recall_score(yt, yp, average='micro')
     metrics['f1'] = sklearn.metrics.f1_score(yt, yp, average='micro')
 
-    exp['metrics'] = metrics
+    params['metrics'] = metrics
+
     print('experiment done!\n')
 
     output = dict(
-        name=exp['name'],
-        weights=exp['model']['weights'],
-        preprocessor=exp['preprocessor']['name'],
+        name=params['name'],
+        seed=params['seed'],
+        weights=params['model']['weights'],
+        preprocessor=params['preprocessor']['name'],
         num_classes=len(dataset.classes),
         metrics=metrics,
-        pca_components=exp['pca']['num_components'],
-        neighbors=exp['num_neighbors']
+        pca_components=params['pca']['num_components'],
+        neighbors=params['num_neighbors']
     )
+    output = ised.utils.flatten_dict(output)
+    df = pd.DataFrame([output])
+    df.to_csv(os.path.join(params['output_path'], 'output.csv'), index=False)
     return output
 
 
-def load_experiments(exp_path, exp_list):
-    if os.path.isdir(exp_path):
-        for root, dirs, files in os.walk(exp_path):
-            for name in files:
-                if name[-5:] == '.yaml':
-                    filepath = os.path.join(root, name)
-                    with open(filepath, 'r') as f:
-                        exp = yaml.load(f)
-                        exp_list.append(exp)
-            # for dir in dirs:
-            #     new_root = os.path.join(root, dir)
-            #     load_experiments(new_root, exp_list)
+def run(path_to_trials):
+
+    for root, dirs, files in os.walk(path_to_trials, topdown=False):
+        # every iteration of this on a specific depth
+        # since its topdown, the first depth will be single run level
+        output = []
+        for dir in dirs:
+            out_path = os.path.join(root, dir, 'output.csv')
+            if os.path.exists(out_path):
+                df = pd.read_csv(out_path).to_dict('records')
+                output.extend(df)
+                o = pd.DataFrame(output)
+                o.to_csv(os.path.join(root, 'output.csv'), index=False)
+        for file in files:
+            file = os.path.join(root, file)
+            if file[-5:] == '.yaml':
+                with open(file, 'r') as f:
+                    params = yaml.load(f)
+                    params['output_path'] = os.path.join(root)
+                    main(params)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--path_to_experiments', '-p',
+    parser.add_argument('--path_to_experiment', '-p',
                         default='week3/experiments')
 
     args = parser.parse_args()
-    exp_path = args.path_to_experiments
+    exp_path = args.path_to_experiment
 
-    # with open('week3/config.yaml', 'r') as f:
-    #     experiments = yaml.load(f)
+    print(exp_path)
 
-    # LOAD EXPERIMENTS
-    experiments = []
-    outputs = []
-    print('loading experiments...')
-    load_experiments(exp_path, experiments)
-    print(f'found {len(experiments)} experiments')
-    for exp in experiments:
-        exp['output_dir'] = exp_path + '/' + exp['name']
-        # ised.utils.pretty_print(exp)
-        print(32 * '-')
-        print(f'running {exp["name"]} with params {exp}')
-        out = run_experiment(exp)
-        out = ised.utils.flatten_dict(out)
-        outputs.append(out)
-        df = pd.DataFrame(outputs)
-        df.to_csv(os.path.join(exp_path, 'output.csv'))
+    run(exp_path)

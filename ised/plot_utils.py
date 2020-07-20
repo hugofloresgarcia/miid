@@ -38,7 +38,7 @@ def plot_features(ax, feature_vector: np.array, title='mfcc features'):
 
     plt.sca(ax)
     plt.title(title)
-    plt.imshow(fv.reshape(-1, 4))
+    plt.imshow(fv.reshape(4, -1))
 
     plt.xticks([0, 1, 2, 3],
                ['mean', 'var', 'delta_mean', 'delta_var'],

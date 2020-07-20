@@ -2,11 +2,9 @@ import torch
 import torchaudio
 import pandas as pd
 from torch.utils.data import Dataset
-from torch.utils.data.sampler import SubsetRandomSampler
+from torch.utils.data.sampler import SubsetRandomSampler, SequentialSampler
 import os
 import numpy as np
-
-from . import core
 
 
 def train_test_split(dataset, batch_size=1,
@@ -21,6 +19,7 @@ def train_test_split(dataset, batch_size=1,
     indices = list(range(dataset_size))
     split = int(np.floor(val_split * dataset_size))
     if shuffle:
+        torch.manual_seed(random_seed)
         np.random.seed(random_seed)
         np.random.shuffle(indices)
     train_indices, val_indices = indices[split:], indices[:split]
