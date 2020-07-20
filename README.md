@@ -69,7 +69,7 @@ usage:
                             sample rate used for analysis (default: 8000)
       --n_mfcc N_MFCC       number of MFCCs (default: 13)
       
-## week 2
+## week 2 and 3
 
 ### reading: look, listen and learn
 paper review at `/readings/week2/looklistenlearn.md`
@@ -90,16 +90,24 @@ download the dataset (if you haven't yet)
  
 generate experiment configs
 
-`python3 week3/generate_experiment.py -o week3/experiments/EXPERIMENT_NAME_GOES_HERE`
+`python3 generate_experiment.py -o experiments/NAME`
+
+(you can group experiments by parameter using the  `-g` flag):
+
+`python3 generate_experiment.pu -o experiments/NAME -g num_classes seed`
 
 feel free to change generate_experiments.py to run more or fewer experiments
 
 now, run the experiment
 
-`python3 run_experiment.py -p week3/experiments/EXPERIMENT_NAME_GOES_HERE`
+`python3 run_experiment.py -p experiments/NAME`
 
 after the experiments are done, a table comparing all of the experiments
-will be available at `week3/experiments/EXPERIMENT_NAME_GOES_HERE/output.csv`
+will be available at `experiments/NAME/output.csv`
+
+do fancy analyses
+
+`python3 compare_trials.py experiments/NAME`
 
 
 
