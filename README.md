@@ -74,6 +74,9 @@ usage:
 ### reading: look, listen and learn
 paper review at `/readings/week2/looklistenlearn.md`
 
+### reading: sound event detection using point-labeled data
+paper review at `/readings/week3/point_labeled_sed.md`
+
 ### coding skill
 (1) Replace the MFCC/delta-MFCC representation Bongjun built I-Sed on top of with VGG-ish embeddings & do week2.py on this representation.  (2) Build a (K) nearest neighbor classifier on top of the learned representation you built in week 2. Use Euclidean distance.  (3) Give me accuracy (percent correct labeling) comparison of a 3-nearest-neighbor classifier  between 4 different data reprsentations:   MFCCs, MFCCs-after-reweighting,  VGG-ish,  VGG-ish-after-reweighting.  Here reweighting = applying Fischer's linear discriminant to reweight the features in the way that you did last week.
 

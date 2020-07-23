@@ -51,7 +51,8 @@ def statistical_tests(path_to_output, filter_by, metrics):
     # filter by condition
     conditions = filter_dict(data, filter_by)
     pairs = {}
-    for condition1, condition2 in itertools.combinations(conditions.keys(), 2):
+    diff = {}
+    for condition1, condition2 in itertools.permutations(conditions.keys(), 2):
         tests = {}
         for metric in metrics:
             cond1 = conditions[condition1]
@@ -59,6 +60,8 @@ def statistical_tests(path_to_output, filter_by, metrics):
 
             cond1 = [item[metric] for item in cond1]
             cond2 = [item[metric] for item in cond2]
+
+            diff[metric] = cond1-cond2
 
             t_stat, t_p = stats.ttest_rel(cond1, cond2)
             w_stat, w_p = stats.wilcoxon(cond1, cond2)
@@ -132,7 +135,7 @@ def compare_trials(path_to_output, filter_by, metrics):
         x = [[d[metric] for d in value] for value in conditions.values()]
 
         # do a boxplot w our data
-        ax.boxplot(x)
+        ax.boxplot(x, showmeans=True)
         ax.set_title(metric)
 
         ticks = [key for key in conditions.keys()]
@@ -172,6 +175,8 @@ def compare_trials(path_to_output, filter_by, metrics):
 
             # do a boxplot w our data
             ax.hist(x)
+            ax.set_xlim(0.25, 1)
+            ax.set_ylim(0, 20)
             ax.set_title(f'{cond}_{metric}')
 
     fig.tight_layout()
