@@ -25,7 +25,7 @@ MAKE SURE EVERYTHING (UNLESS ITS ANOTHER DICT) IS WRAPPED
 IN A LIST BECAUSE IT WILL TRY TO ITERATE OVER EVERYTHING
 """
 experiments = {
-    'seed': list(range(24)),
+    'seed': list(range(50)),
     'max_train': [200],
     'classes': [('french-horn', 'english-horn')],
     'sr': [8000],

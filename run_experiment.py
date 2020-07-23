@@ -226,10 +226,15 @@ def main(params):
         # close fig when we're done
         plt.close(fig)
 
+     # AHHH I CAN'T BELIEVE I DID THIS WRONG THE FIRST TIME
+    yt = np.argmax(yt, axis=1)
+    yp = np.argmax(yp, axis=1)
+
+    m = sklearn.metrics.confusion_matrix(yt, yp)
     metrics['accuracy_score'] = sklearn.metrics.accuracy_score(yt, yp)
-    metrics['precision'] = sklearn.metrics.precision_score(yt, yp, average='micro')
-    metrics['recall'] = sklearn.metrics.recall_score(yt, yp, average='micro')
-    metrics['f1'] = sklearn.metrics.f1_score(yt, yp, average='micro')
+    metrics['precision'] = sklearn.metrics.precision_score(yt, yp)
+    metrics['recall'] = sklearn.metrics.recall_score(yt, yp)
+    metrics['f1'] = sklearn.metrics.f1_score(yt, yp)
 
     params['metrics'] = metrics
 

@@ -22,18 +22,6 @@ def flatten_dict(d, parent_key='', sep='_'):
             items.append((new_key, v))
     return dict(items)
 
-
-def printTree(tree, d = 0):
-    if (tree == None or len(tree) == 0):
-        print("\t" * d, "-")
-    else:
-        for key, val in tree.items():
-            if (isinstance(val, dict)):
-                print("\t" * d, key)
-                printTree(val, d+1)
-            else:
-                print("\t" * d, f'{key} --> {val}')
-
 def get_key(d, filter_list):
     key = ''
     for label in filter_list:
@@ -124,7 +112,9 @@ def compare_trials(path_to_output, filter_by, metrics):
     num_trials = [len(l) for l in conditions.values()]
     num_trials = min(num_trials)+1
 
+    # --------------------------------------
     # BOXPLOTS
+    # --------------------------------------
     num_subplots = len(metrics)
     subplot_rows = int(np.sqrt(num_subplots))
     subplot_cols = num_subplots-subplot_rows
@@ -154,8 +144,12 @@ def compare_trials(path_to_output, filter_by, metrics):
     fig.savefig(
         os.path.join(path_to_output, 'metrics.png')
     )
+    # --------------------------------------
+    # --------------------------------------
 
+    # --------------------------------------
     # HISTOGRAMS
+    # --------------------------------------
     num_subplots = len(metrics) * len(conditions)
     subplot_rows = int(np.sqrt(num_subplots))
     subplot_cols = num_subplots // subplot_rows
@@ -185,6 +179,8 @@ def compare_trials(path_to_output, filter_by, metrics):
     fig.savefig(
         os.path.join(path_to_output, 'distributions.png')
     )
+    # --------------------------------------
+    # --------------------------------------
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
