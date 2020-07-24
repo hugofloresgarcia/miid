@@ -74,6 +74,6 @@ Our Wilcoxon test indicates that the differences are statistically significant. 
 
 | conditions | wilcoxon-stat | wilcoxon- p value|
 | --- | --- | ---|
-|ISED-weights -> VGGish-weights| 471.5 | 0.327 |
+|ISED-weights -> VGGish-noweights| 471.5 | 0.327 |
 
 With a `p_value = 0.327`, it looks like the difference between our two sets is not statistically significant, indicating thay they will perform roughly the same? 
