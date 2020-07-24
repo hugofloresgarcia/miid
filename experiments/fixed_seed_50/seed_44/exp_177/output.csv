@@ -1,0 +1,2 @@
+name,seed,weights,preprocessor,num_classes,metrics_accuracy_score,metrics_precision,metrics_recall,metrics_f1,pca_components,neighbors
+exp_177,44,False,vggish,2,0.8865248226950354,0.90625,0.8529411764705882,0.8787878787878787,2,3
