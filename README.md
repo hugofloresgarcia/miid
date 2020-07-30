@@ -112,5 +112,21 @@ do fancy analyses
 
 `python3 compare_trials.py experiments/NAME`
 
+## week 4
+
+### notes on using openL3 in the experiment
+
+openl3 is not in the pip requirements. you must install manually:
+
+- first, install tensorflow:  `pip3 install "tensorflow<1.14"`
+
+- now, install openl3:  
+`cd openl3`  
+`pip3 install -e .`
+
+### other weekly updates
+
+markdown file with this week's updates are in `week4/notes_on_audacity.md`
+
 
 
