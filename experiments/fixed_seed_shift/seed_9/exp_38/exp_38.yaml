@@ -1,0 +1,20 @@
+classes: !!python/tuple
+- french-horn
+- english-horn
+max_train: 200
+model:
+  weights: true
+name: exp_38
+num_neighbors: 3
+output_dir: experiments/fixed_seed_shift/seed_9/exp_38
+pca:
+  num_components: 2
+preprocessor:
+  mfcc_kwargs:
+    log_mels: false
+    n_mfcc: 13
+  name: ised_features
+  normalize: false
+seed: 9
+sr: 8000
+window_size: 0.09

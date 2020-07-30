@@ -20,6 +20,7 @@ def features(mfcc: np.ndarray):
     """
     compute ISED feature vector from MFCCs
     """
+    mfcc = utils.assert_torch(mfcc)
     dmfcc = delta(mfcc)
     
     fmean = mfcc.mean(axis=-1)

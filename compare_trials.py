@@ -58,8 +58,8 @@ def statistical_tests(path_to_output, filter_by, metrics):
             cond1 = conditions[condition1]
             cond2 = conditions[condition2]
 
-            cond1 = [item[metric] for item in cond1]
-            cond2 = [item[metric] for item in cond2]
+            cond1 = np.array([item[metric] for item in cond1])
+            cond2 = np.array([item[metric] for item in cond2])
 
             diff[metric] = cond1-cond2
 

@@ -1,6 +1,8 @@
 from .core import *
 from .neighbors import *
 from sklearn.decomposition import PCA
+from sklearn.manifold import TSNE
+import umap
 
 class Preprocessor:
     def __init__(self, sr, mfcc_kwargs, normalize=False):
@@ -9,7 +11,6 @@ class Preprocessor:
         self.normalize = normalize
 
     def __call__(self, audio, sr):
-
         feats = compute_features(audio, sr, self.sr, self.mfcc_kwargs, self.normalize)
 
         return feats
@@ -29,6 +30,7 @@ class Model:
         self.examples.append(self.target)
 
         self.pca = {}
+        self.tsne = {}
 
     def get_labels(self):
         """
@@ -234,3 +236,68 @@ class Model:
         nmap = pca.transform(nmap)
 
         return pmap, nmap
+
+
+    def do_tsne(self, label, num_components, weights=True):
+        """
+                do PCA on the dataset
+
+                params:
+                    label: label that corresponds to positive examples
+                    num_components: number of components to output
+                    weights: if true, the feature vectors will be multiplied times
+                        the model weights
+
+                returns:
+                    tuple of the form (pmap, nmap) where
+                        pmap == positive examples (that correspond to the label)
+                        nmap == negative examples (that don't match the label)
+
+                """
+        if weights:
+            # get the complete, positive and negative examples
+            fmap = self.get_feature_map(label, both=True)
+            nmap = self.get_feature_map(label, others=True)
+            pmap = self.get_feature_map(label)
+
+        else:
+            fmap = self.get_subset(None, as_array=True)
+            nmap = self.get_subset(label, others=True, as_array=True)
+            pmap = self.get_subset(label, others=False, as_array=True)
+
+
+        X = np.array([*nmap, *pmap])
+        # X = (X - X.mean()) / X.std()
+        y = np.array([*np.zeros_like(nmap)[:, 0], *np.ones_like(pmap)[:, 0]])
+
+        tsne = TSNE(n_components=num_components, learning_rate=1000)
+        tsne.fit(X, y)
+
+        self.tsne[label] = tsne
+
+        X_tsne = tsne.fit_transform(X, y)
+
+        return X_tsne, y
+
+    def do_umap(self, label, num_components, weights=True):
+        if weights:
+            # get the complete, positive and negative examples
+            fmap = self.get_feature_map(label, both=True)
+            nmap = self.get_feature_map(label, others=True)
+            pmap = self.get_feature_map(label)
+
+        else:
+            fmap = self.get_subset(None, as_array=True)
+            nmap = self.get_subset(label, others=True, as_array=True)
+            pmap = self.get_subset(label, others=False, as_array=True)
+
+
+        X = np.array([*nmap, *pmap])
+        # X = (X - X.mean()) / X.std()
+        y = np.array([*np.zeros_like(nmap)[:, 0], *np.ones_like(pmap)[:, 0]])
+
+        reducer = umap.UMAP()
+
+        embedding = reducer.fit_transform(X)
+
+        return embedding, y

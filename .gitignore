@@ -7,3 +7,5 @@
 *.DS_Store
 *.jpg
 **/.idea
+/openl3/
+/venv/

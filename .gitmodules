@@ -1,0 +1,3 @@
+[submodule "openl3"]
+	path = openl3
+	url = https://github.com/marl/openl3.git

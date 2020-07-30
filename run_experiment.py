@@ -2,6 +2,8 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 
+import openl3
+
 import yaml
 import os
 import argparse
@@ -12,7 +14,26 @@ from ised.ised import Preprocessor, Model
 
 import pandas as pd
 import sklearn.metrics
+import seaborn as sns
 
+class OpenL3:
+    def __init__(self):
+        self.model = openl3.models.load_audio_embedding_model(
+            input_repr='mel128',
+            embedding_size=512,
+            content_type='music'
+        )
+
+    def __call__(self, x, sr):
+        x = trim_or_pad(x, sr)
+        x = ised.utils.assert_numpy(x)
+        # remove channel dimensions
+        emb, ts = openl3.get_audio_embedding(x, sr, model=self.model,  verbose=False,
+                                             content_type="music", embedding_size=512,
+                                             center=True, hop_size=0.1
+                                             )
+        # print(f"EMB DIM: {emb.shape}")
+        return emb.squeeze(0)
 
 class VGGish:
     def __init__(self):
@@ -45,8 +66,10 @@ def load_preprocessor(params: dict):
             mfcc_kwargs=params['mfcc_kwargs'],
             normalize=params['normalize']
         )
+    elif name == 'openl3':
+        model = OpenL3()
     else:
-        raise NameError("couldn't find preprocessor name")
+        raise ValueError("couldn't find preprocessor name")
     return model
 
 
@@ -59,6 +82,10 @@ def trim_or_pad(audio, length):
         audio = audio.unsqueeze(0)
     elif audio.size()[1] > length:
         audio = audio[:, 0:length]
+        # if audio.size()[1] > 1.5 * length:
+        #     audio = audio[:, int(0.5*length):int(1.5*length)]
+        # else:
+        #     audio = audio[:, 0:length]
 
     return audio
 
@@ -114,7 +141,6 @@ def main(params):
 
         # forward pass
         sample['audio'] = trim_or_pad(sample['audio'], sample['sr'])
-
         sample['features'] = preprocessor(sample['audio'], sample['sr'])
 
         # add example to our model
@@ -226,7 +252,59 @@ def main(params):
         # close fig when we're done
         plt.close(fig)
 
-     # AHHH I CAN'T BELIEVE I DID THIS WRONG THE FIRST TIME
+        X_tsne, y = model.do_tsne(label, params['pca']['num_components'], params['model']['weights'])
+
+        tsne_df = pd.DataFrame(data={
+            'tsne_one': X_tsne[:, 0],
+            'tsne_two': X_tsne[:, 1],
+            'y': y
+        })
+
+        fig = plt.figure(figsize=(16, 7))
+        ax1 = fig.subplots(1)
+        sns.scatterplot(
+            x="tsne_one", y="tsne_two",
+            hue="y",
+            palette=sns.color_palette("hls", 2),
+            data=tsne_df,
+            legend="full",
+            alpha=0.8,
+            ax=ax1
+        )
+
+        # save fig
+        fig.savefig(
+            ised.utils.mkdir(f"{params['output_dir']}") + '/' + f't-sne_{label}_validation'
+        )
+        plt.close(fig)
+
+        X_umap, y = model.do_umap(label, params['pca']['num_components'], params['model']['weights'])
+
+        umap_df = pd.DataFrame(data={
+            'umap_one': X_umap[:, 0],
+            'umap_two': X_umap[:, 1],
+            'y': y
+        })
+
+        fig = plt.figure(figsize=(16, 7))
+        ax1 = fig.subplots(1)
+        sns.scatterplot(
+            x="umap_one", y="umap_two",
+            hue="y",
+            palette=sns.color_palette("hls", 2),
+            data=umap_df,
+            legend="full",
+            alpha=0.8,
+            ax=ax1
+        )
+
+        # save fig
+        fig.savefig(
+            ised.utils.mkdir(f"{params['output_dir']}") + '/' + f'umap_{label}_validation'
+        )
+        plt.close(fig)
+
+    # AHHH I CAN'T BELIEVE I DID THIS WRONG THE FIRST TIME
     yt = np.argmax(yt, axis=1)
     yp = np.argmax(yp, axis=1)
 
@@ -274,6 +352,7 @@ def run(path_to_trials):
             if file[-5:] == '.yaml':
                 with open(file, 'r') as f:
                     params = yaml.load(f)
+                    print(f'running exp with name {params["name"]}')
                     params['output_path'] = os.path.join(root)
                     main(params)
 
