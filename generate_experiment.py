@@ -48,6 +48,32 @@ experiments = {
     'num_neighbors': [3]
 }
 
+experiments = {
+    'seed': [1],
+    'max_train': [300],
+    'classes': [('french-horn', 'english-horn')],
+    'sr': [8000],
+    'window_size': [90e-3],
+    'preprocessor':
+        {
+            'name': ['openl3'],
+            'normalize': [False],
+            'mfcc_kwargs': {
+                'log_mels': [False],
+                'n_mfcc': [13]
+            }
+        },
+    'model': {
+        'weights': [True, False]
+    },
+    'pca': {
+        'num_components': [2]
+    },
+    'num_neighbors': [3]
+}
+
+
+
 def gen_experiments(exps):
     k, v = zip(*exps.items())
     v = (gen_experiments(val) if isinstance(val, dict) else val for val in v)

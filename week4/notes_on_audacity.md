@@ -1,7 +1,6 @@
 ## notes on OpenL3 embedding
 I tried some dimensionality reduction techniques on the OpenL3 embedding. Here are some results:
 
-
 In the t-SNE and UMAP plots, the blue dots represent english horns, while the red dots represent french horns. 
 
 ### with fischer reweighing
@@ -37,16 +36,6 @@ In the t-SNE and UMAP plots, the blue dots represent english horns, while the re
 
 ## options
 
-### Torch C++ Frontend and Extending Audacity Source:
-**pros**
-
-- full control of source, so the sky's the limit. 
-- write and train models in c++
-
-**cons**
-
-- harder to code. may spend more time fixing bugs, and less time doing research.
-
 ### TorchScript and Extending Audacity Source
 
 from the torch website:
@@ -62,7 +51,7 @@ from the torch website:
 **cons**
 
 - only nn.Module subclasses may be converted to TorchScript, which means that preprocessing steps would still have to be implemented in C++
-- there are some limitations to what can be done inside the models. For example, adding control flow statements requires extra work that may end up overcomplicating things. 
+- there are some limitations to what can be done inside the models. For example, adding control flow statements requires extra work that may end up overcomplicating things. If this is the case, I believe the model can be written using PyTorch's C++ frontend, and then restoring the model weights to a checkpoint. 
 
 #### Using Audacity's mod-script-pipe
 
