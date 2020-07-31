@@ -128,5 +128,7 @@ openl3 is not in the pip requirements. you must install manually:
 
 markdown file with this week's updates are in `week4/notes_on_audacity.md`
 
+I made [umap](https://hugofloresgarcia.github.io/philharmonia/philharmonia-umap.html) and [t-SNE](https://hugofloresgarcia.github.io/philharmonia/philharmonia-umap.html) reductions of the vggish embeddings of 6500 samples from the philharmonia dataset.
+
 
 
