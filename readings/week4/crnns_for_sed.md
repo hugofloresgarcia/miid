@@ -140,8 +140,6 @@ Besides background noise, another big difference I can think about synthetic/not
 
 Wouldn't the net learn better if there was a relationship between events? i.e. thunder is likely to happen before rain, etc. And be able to model these temporal relationships with an LSTM/transformer. 
 
-Sort of like an attention mechanism? I JUST read the transformer paper so this is what popped into my head. 
-
 #### frequency shift invariance
 - do the results in Fig. 5 mean that the maxpooling in the conv layers wasn't effective enough to make the model robust to frequency shifts?  
 - what other techniques can be used to make the model more robust to frequency shifts? 

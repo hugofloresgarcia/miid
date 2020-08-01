@@ -1,0 +1,20 @@
+classes: !!python/tuple
+- tuba
+- flute
+max_train: 200
+model:
+  weights: true
+name: exp_18
+num_neighbors: 3
+output_dir: experiments/openl3_fixed_seed/seed_9/exp_18
+pca:
+  num_components: 2
+preprocessor:
+  mfcc_kwargs:
+    log_mels: false
+    n_mfcc: 13
+  name: openl3
+  normalize: false
+seed: 9
+sr: 8000
+window_size: 0.09

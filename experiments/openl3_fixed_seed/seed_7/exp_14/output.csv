@@ -1,0 +1,2 @@
+name,seed,weights,preprocessor,num_classes,metrics_accuracy_score,metrics_precision,metrics_recall,metrics_f1,pca_components,neighbors
+exp_14,7,True,openl3,2,0.5177304964539007,0.5131578947368421,0.5571428571428572,0.5342465753424657,2,3

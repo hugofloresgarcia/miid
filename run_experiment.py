@@ -16,6 +16,11 @@ import pandas as pd
 import sklearn.metrics
 import seaborn as sns
 
+import plotly.express as px
+import umap
+from sklearn.manifold import TSNE
+from sklearn.decomposition import PCA
+
 class OpenL3:
     def __init__(self):
         self.model = openl3.models.load_audio_embedding_model(
@@ -25,15 +30,20 @@ class OpenL3:
         )
 
     def __call__(self, x, sr):
-        x = trim_or_pad(x, sr)
+        # x = trim_or_pad(x, sr)
         x = ised.utils.assert_numpy(x)
         # remove channel dimensions
-        emb, ts = openl3.get_audio_embedding(x, sr, model=self.model,  verbose=False,
+        embedding, ts = openl3.get_audio_embedding(x, sr, model=self.model,  verbose=False,
                                              content_type="music", embedding_size=512,
-                                             center=True, hop_size=0.1
-                                             )
+                                             center=True, hop_size=0.1)
         # print(f"EMB DIM: {emb.shape}")
-        return emb.squeeze(0)
+
+        # take de mean of the whole audio file
+        if embedding.shape[0] > 1 and embedding.ndim > 1:
+            if isinstance(embedding, torch.Tensor):
+                embedding = embedding.detach().numpy()
+            embedding = embedding.mean(axis=0)
+        return embedding.squeeze(0)
 
 class VGGish:
     def __init__(self):
@@ -41,18 +51,24 @@ class VGGish:
         self.model.eval()
 
     def __call__(self, x, sr):
-        x = trim_or_pad(x, sr)
+        # x = trim_or_pad(x, sr)
         # remove channel dimension and convert to numpy if needed
         x = x.squeeze(0)
         x = ised.utils.assert_numpy(x)
         # lets do the mean var, dmean dvar on the vggish embedding
         v = self.model(x, sr)
 
-        # TODO: this is hacky. I shouldn't have to do this
-        if not v.shape[0] == 128:
-            v = v[0]
+        # # TODO: this is hacky. I shouldn't have to do this
+        # if not v.shape[0] == 128:
+        #     v = v[0]
 
-        return v
+        # take de mean of the whole audio file
+        if v.shape[0] > 1 and v.ndim > 1:
+            if isinstance(v, torch.Tensor):
+                v = v.detach().numpy()
+            v = v.mean(axis=0)
+
+        return v.squeeze(0)
 
 
 def load_preprocessor(params: dict):
@@ -89,6 +105,48 @@ def trim_or_pad(audio, length):
 
     return audio
 
+
+def dim_reduce(emb, labels, save_path, n_components=3, method='umap', title_prefix = ''):
+    if method == 'umap':
+        reducer = umap.UMAP(n_components=n_components)
+    elif method == 'tsne':
+        reducer = TSNE(n_components=n_components)
+    elif method == 'pca':
+        reducer = PCA(n_components=n_components)
+    else:
+        raise ValueError
+
+    proj = reducer.fit_transform(emb)
+
+
+    if n_components == 2:
+        df = pd.DataFrame(dict(
+            x=proj[:, 0],
+            y=proj[:, 1],
+            instrument=labels
+        ))
+        fig = px.scatter(df, x='x', y='y', color='instrument',
+                        title=title_prefix+f"_{method}")
+
+    elif n_components ==3:
+        df = pd.DataFrame(dict(
+            x=proj[:, 0],
+            y=proj[:, 1],
+            z=proj[:, 2],
+            instrument=labels
+        ))
+        fig = px.scatter_3d(df, x='x', y='y', z='z',
+                        color='instrument',
+                        title=title_prefix+f"_{method}")
+    else:
+        raise ValueError("cant plot more than 3 components")
+
+    fig.update_traces(marker=dict(size=6,
+                                  line=dict(width=1,
+                                            color='DarkSlateGrey')),
+                      selector=dict(mode='markers'))
+
+    fig.write_html(save_path + '/' + title_prefix+f"_{method}.html")
 
 def main(params):
     # --------------------------------------------
@@ -140,7 +198,6 @@ def main(params):
         sample = ised.datasets.debatch(sample)
 
         # forward pass
-        sample['audio'] = trim_or_pad(sample['audio'], sample['sr'])
         sample['features'] = preprocessor(sample['audio'], sample['sr'])
 
         # add example to our model
@@ -161,7 +218,7 @@ def main(params):
     # now, let's log our PCA with weights/noweights
     for label in model.get_labels():
         # get a model pca
-        pmap, nmap = model.do_pca(label, params['pca']['num_components'], params['model']['weights'])
+        pmap, nmap = model.do_pca(label, params['num_components'], params['model']['weights'])
 
         # add a classifier
         plabels = [label for e in pmap]
@@ -189,7 +246,7 @@ def main(params):
         sample = ised.datasets.debatch(sample)
 
         # forward pass
-        sample['audio'] = trim_or_pad(sample['audio'], sample['sr'])
+        # sample['audio'] = trim_or_pad(sample['audio'], sample['sr'])
         sample['features'] = preprocessor(sample['audio'], sample['sr'])
 
         # now, do classification by label
@@ -222,87 +279,23 @@ def main(params):
         yp.append(y_pred)
 
     # --------------------------------------------
-    # ROUND OF PCA PLOTS
+    # ROUND OF DIMENSION REDUCTION
     # --------------------------------------------
     for label in model.get_labels():
-        # get a model pca
-        pmap, nmap = model.do_pca(label, params['pca']['num_components'], params['model']['weights'])
-        fig, axes = plot_utils.get_figure(2, 2,
-                                          title=f'{params["name"]}_{label}_{params["preprocessor"]["name"]}')
+        X, labels = model.get_features_with_labels(label, weights=params['model']['weights'])
+        methods = ['pca', 'umap', 'tsne']
 
-        r = np.array(right[label])
-        w = np.array(wrong[label])
-
-        # # plot pca
-        # axes[0][0] = plot_utils.plot_pca(axes[0][0], {label: pmap, f'not_{label}': nmap,
-        #                                               'right': r, 'wrong': w}, title='train and test')
-
-        axes[1][0] = plot_utils.plot_pca(axes[1][0], {label: pmap, f'not_{label}': nmap}, title='train set')
-        axes[1][1] = plot_utils.plot_pca(axes[1][1], {'right': r, 'wrong': w}, title='test',
-                                         colors=dict(right='g', wrong='r'))
+        fig, ax = plot_utils.get_figure(1, 1, title=f'{label}_weights')
         W = model.weights[label]
-        # plot features
-        axes[0][1] = plot_utils.plot_features(axes[0][1], W, title='fischer weights')
+        #     # plot features
+        ax = plot_utils.plot_features(ax, W, title='fischer weights')
+        fig.savefig(ised.utils.mkdir(f"{params['output_dir']}") + '/' + f'{label}_weights')
 
-        # save fig
-        fig.savefig(
-            ised.utils.mkdir(f"{params['output_dir']}") + '/' + f'{label}_validation'
-        )
+        for method in methods:
+            dim_reduce(X, labels, ised.utils.mkdir(f"{params['output_dir']}"),
+                       method=method, n_components=params['num_components'],
+                       title_prefix=label)
 
-        # close fig when we're done
-        plt.close(fig)
-
-        X_tsne, y = model.do_tsne(label, params['pca']['num_components'], params['model']['weights'])
-
-        tsne_df = pd.DataFrame(data={
-            'tsne_one': X_tsne[:, 0],
-            'tsne_two': X_tsne[:, 1],
-            'y': y
-        })
-
-        fig = plt.figure(figsize=(16, 7))
-        ax1 = fig.subplots(1)
-        sns.scatterplot(
-            x="tsne_one", y="tsne_two",
-            hue="y",
-            palette=sns.color_palette("hls", 2),
-            data=tsne_df,
-            legend="full",
-            alpha=0.8,
-            ax=ax1
-        )
-
-        # save fig
-        fig.savefig(
-            ised.utils.mkdir(f"{params['output_dir']}") + '/' + f't-sne_{label}_validation'
-        )
-        plt.close(fig)
-
-        X_umap, y = model.do_umap(label, params['pca']['num_components'], params['model']['weights'])
-
-        umap_df = pd.DataFrame(data={
-            'umap_one': X_umap[:, 0],
-            'umap_two': X_umap[:, 1],
-            'y': y
-        })
-
-        fig = plt.figure(figsize=(16, 7))
-        ax1 = fig.subplots(1)
-        sns.scatterplot(
-            x="umap_one", y="umap_two",
-            hue="y",
-            palette=sns.color_palette("hls", 2),
-            data=umap_df,
-            legend="full",
-            alpha=0.8,
-            ax=ax1
-        )
-
-        # save fig
-        fig.savefig(
-            ised.utils.mkdir(f"{params['output_dir']}") + '/' + f'umap_{label}_validation'
-        )
-        plt.close(fig)
 
     # AHHH I CAN'T BELIEVE I DID THIS WRONG THE FIRST TIME
     yt = np.argmax(yt, axis=1)
@@ -325,7 +318,7 @@ def main(params):
         preprocessor=params['preprocessor']['name'],
         num_classes=len(dataset.classes),
         metrics=metrics,
-        pca_components=params['pca']['num_components'],
+        pca_components=params['num_components'],
         neighbors=params['num_neighbors']
     )
     output = ised.utils.flatten_dict(output)

@@ -25,33 +25,9 @@ MAKE SURE EVERYTHING (UNLESS ITS ANOTHER DICT) IS WRAPPED
 IN A LIST BECAUSE IT WILL TRY TO ITERATE OVER EVERYTHING
 """
 experiments = {
-    'seed': list(range(50)),
+    'seed': list(range(25)),
     'max_train': [200],
-    'classes': [('french-horn', 'english-horn')],
-    'sr': [8000],
-    'window_size': [90e-3],
-    'preprocessor':
-        {
-            'name': ['vggish', 'ised_features'],
-            'normalize': [False],
-            'mfcc_kwargs': {
-                'log_mels': [False],
-                'n_mfcc': [13]
-            }
-        },
-    'model': {
-        'weights': [True, False]
-    },
-    'pca': {
-        'num_components': [2]
-    },
-    'num_neighbors': [3]
-}
-
-experiments = {
-    'seed': [1],
-    'max_train': [300],
-    'classes': [('french-horn', 'english-horn')],
+    'classes': [('tuba', 'flute')],
     'sr': [8000],
     'window_size': [90e-3],
     'preprocessor':
@@ -72,7 +48,29 @@ experiments = {
     'num_neighbors': [3]
 }
 
+experiments = {
+    'seed': [1],
+    'max_train': [300],
+    'classes': [('double-bass', 'viola')],
+    'sr': [8000],
+    'window_size': [90e-3],
+    'preprocessor':
+        {
+            'name': ['openl3'],
+            'normalize': [False],
+            'mfcc_kwargs': {
+                'log_mels': [False],
+                'n_mfcc': [13]
+            }
+        },
+    'model': {
+        'weights': [True, False]
+    },
 
+    'num_components': [2, 3],
+
+    'num_neighbors': [3]
+}
 
 def gen_experiments(exps):
     k, v = zip(*exps.items())

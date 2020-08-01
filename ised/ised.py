@@ -237,6 +237,25 @@ class Model:
 
         return pmap, nmap
 
+    def get_features_with_labels(self, label, weights=True):
+        if weights:
+            # get the complete, positive and negative examples
+            fmap = self.get_feature_map(label, both=True)
+            nmap = self.get_feature_map(label, others=True)
+            pmap = self.get_feature_map(label)
+
+        else:
+            fmap = self.get_subset(None, as_array=True)
+            nmap = self.get_subset(label, others=True, as_array=True)
+            pmap = self.get_subset(label, others=False, as_array=True)
+
+
+        X = np.array([*nmap, *pmap])
+
+        y = np.array([*np.zeros_like(nmap)[:, 0], *np.ones_like(pmap)[:, 0]])
+        labels = [label if i == 1 else f'not_{label}' for i in y]
+
+        return X, labels
 
     def do_tsne(self, label, num_components, weights=True):
         """
