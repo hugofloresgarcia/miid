@@ -5,16 +5,6 @@ from itertools import product
 from ised import utils
 import pandas as pd
 
-# i wanna have
-# 20 different trials
-# 4 different models per trial (ised, vgg, weights, no weights)
-# compare restuls per TRIAL (4 of these)
-# how do I do this?
-# get output per single configuration, including figures?
-# put all these figures together?
-
-# IDEA: add a "group by arg", stating that you would like to group these by seed
-#
 
 """
 generate a cartesian product of all possible configs
@@ -25,14 +15,14 @@ MAKE SURE EVERYTHING (UNLESS ITS ANOTHER DICT) IS WRAPPED
 IN A LIST BECAUSE IT WILL TRY TO ITERATE OVER EVERYTHING
 """
 experiments = {
-    'seed': list(range(25)),
+    'seed': list(range(50)),
     'max_train': [200],
-    'classes': [('tuba', 'flute')],
+    'classes': [('flute', 'french-horn')],
     'sr': [8000],
     'window_size': [90e-3],
     'preprocessor':
         {
-            'name': ['openl3'],
+            'name': ['openl3', 'vggish', 'ised_features'],
             'normalize': [False],
             'mfcc_kwargs': {
                 'log_mels': [False],
@@ -42,33 +32,7 @@ experiments = {
     'model': {
         'weights': [True, False]
     },
-    'pca': {
-        'num_components': [2]
-    },
-    'num_neighbors': [3]
-}
-
-experiments = {
-    'seed': [1],
-    'max_train': [300],
-    'classes': [('double-bass', 'viola')],
-    'sr': [8000],
-    'window_size': [90e-3],
-    'preprocessor':
-        {
-            'name': ['openl3'],
-            'normalize': [False],
-            'mfcc_kwargs': {
-                'log_mels': [False],
-                'n_mfcc': [13]
-            }
-        },
-    'model': {
-        'weights': [True, False]
-    },
-
-    'num_components': [2, 3],
-
+    'num_components': [2],
     'num_neighbors': [3]
 }
 

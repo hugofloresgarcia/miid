@@ -1,0 +1,19 @@
+classes: !!python/tuple
+- flute
+- french-horn
+max_train: 200
+model:
+  weights: true
+name: exp_22
+num_components: 2
+num_neighbors: 3
+output_dir: experiments/behemoth/seed_3/exp_22
+preprocessor:
+  mfcc_kwargs:
+    log_mels: false
+    n_mfcc: 13
+  name: ised_features
+  normalize: false
+seed: 3
+sr: 8000
+window_size: 0.09

@@ -21,6 +21,10 @@ import umap
 from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA
 
+from ised.utils import ResampleDownmix
+
+import time
+
 class OpenL3:
     def __init__(self):
         self.model = openl3.models.load_audio_embedding_model(
@@ -30,20 +34,22 @@ class OpenL3:
         )
 
     def __call__(self, x, sr):
-        # x = trim_or_pad(x, sr)
         x = ised.utils.assert_numpy(x)
+        x = x.squeeze(0)
         # remove channel dimensions
         embedding, ts = openl3.get_audio_embedding(x, sr, model=self.model,  verbose=False,
                                              content_type="music", embedding_size=512,
-                                             center=True, hop_size=0.1)
-        # print(f"EMB DIM: {emb.shape}")
+                                             center=True, hop_size=1)
 
-        # take de mean of the whole audio file
-        if embedding.shape[0] > 1 and embedding.ndim > 1:
-            if isinstance(embedding, torch.Tensor):
-                embedding = embedding.detach().numpy()
-            embedding = embedding.mean(axis=0)
-        return embedding.squeeze(0)
+        if embedding.ndim > 1:
+            if embedding.shape[0] > 1:
+                embedding = embedding.mean(axis=0)
+            elif embedding.shape[0] == 1:
+                embedding = embedding.squeeze(0)
+
+        assert embedding.ndim == 1
+
+        return embedding
 
 class VGGish:
     def __init__(self):
@@ -51,25 +57,20 @@ class VGGish:
         self.model.eval()
 
     def __call__(self, x, sr):
-        # x = trim_or_pad(x, sr)
-        # remove channel dimension and convert to numpy if needed
-        x = x.squeeze(0)
         x = ised.utils.assert_numpy(x)
+        x = x.squeeze(0)
         # lets do the mean var, dmean dvar on the vggish embedding
-        v = self.model(x, sr)
+        embedding = self.model(x, sr)
 
-        # # TODO: this is hacky. I shouldn't have to do this
-        # if not v.shape[0] == 128:
-        #     v = v[0]
+        if embedding.ndim > 1:
+            if embedding.shape[0] > 1:
+                embedding = embedding.mean(axis=0)
+            elif embedding.shape[0] == 1:
+                embedding = embedding.squeeze(0)
 
-        # take de mean of the whole audio file
-        if v.shape[0] > 1 and v.ndim > 1:
-            if isinstance(v, torch.Tensor):
-                v = v.detach().numpy()
-            v = v.mean(axis=0)
+        assert embedding.ndim == 1
 
-        return v.squeeze(0)
-
+        return embedding
 
 def load_preprocessor(params: dict):
     name = params['name']
@@ -88,23 +89,17 @@ def load_preprocessor(params: dict):
         raise ValueError("couldn't find preprocessor name")
     return model
 
-
-def trim_or_pad(audio, length):
-    # TODO: do I want to trim the audio at 1s?
+def zero_pad(audio, length):
+    """
+    make sure audio is at least 1 second long
+    """
     if audio.size()[1] < length:
         l = audio.size()[1]
         z = torch.zeros(length - l)
         audio = torch.cat([audio[0], z])
         audio = audio.unsqueeze(0)
-    elif audio.size()[1] > length:
-        audio = audio[:, 0:length]
-        # if audio.size()[1] > 1.5 * length:
-        #     audio = audio[:, int(0.5*length):int(1.5*length)]
-        # else:
-        #     audio = audio[:, 0:length]
 
     return audio
-
 
 def dim_reduce(emb, labels, save_path, n_components=3, method='umap', title_prefix = ''):
     if method == 'umap':
@@ -149,6 +144,9 @@ def dim_reduce(emb, labels, save_path, n_components=3, method='umap', title_pref
     fig.write_html(save_path + '/' + title_prefix+f"_{method}.html")
 
 def main(params):
+    # timing
+    tic = time.time()
+
     # --------------------------------------------
     # SETUP
     # --------------------------------------------
@@ -177,7 +175,8 @@ def main(params):
     target = dataset.get_example(classes[0])
 
     # forward pass our target through the preprocessor
-    # to get a feature vector
+    target['audio'] = zero_pad(target['audio'], target['sr'])
+    target['audio'] = ResampleDownmix(target['sr'], target['sr'])(target['audio'])
     target['features'] = preprocessor(target['audio'], target['sr'])
 
     # load our ised model with our target
@@ -198,6 +197,8 @@ def main(params):
         sample = ised.datasets.debatch(sample)
 
         # forward pass
+        sample['audio'] = zero_pad(sample['audio'], sample['sr'])
+        sample['audio'] = ResampleDownmix(sample['sr'], sample['sr'])(sample['audio'])
         sample['features'] = preprocessor(sample['audio'], sample['sr'])
 
         # add example to our model
@@ -246,7 +247,8 @@ def main(params):
         sample = ised.datasets.debatch(sample)
 
         # forward pass
-        # sample['audio'] = trim_or_pad(sample['audio'], sample['sr'])
+        sample['audio'] = zero_pad(sample['audio'], sample['sr'])
+        sample['audio'] = ResampleDownmix(sample['sr'], sample['sr'])(sample['audio'])
         sample['features'] = preprocessor(sample['audio'], sample['sr'])
 
         # now, do classification by label
@@ -294,7 +296,7 @@ def main(params):
         for method in methods:
             dim_reduce(X, labels, ised.utils.mkdir(f"{params['output_dir']}"),
                        method=method, n_components=params['num_components'],
-                       title_prefix=label)
+                       title_prefix=f'{params["preprocessor"]["name"]}_{label}')
 
 
     # AHHH I CAN'T BELIEVE I DID THIS WRONG THE FIRST TIME
@@ -324,6 +326,10 @@ def main(params):
     output = ised.utils.flatten_dict(output)
     df = pd.DataFrame([output])
     df.to_csv(os.path.join(params['output_path'], 'output.csv'), index=False)
+
+    # timing
+    toc = time.time()
+    print(f'experiment took {toc - tic} s')
     return output
 
 
@@ -343,11 +349,16 @@ def run(path_to_trials):
         for file in files:
             file = os.path.join(root, file)
             if file[-5:] == '.yaml':
+                if os.path.exists(os.path.join(root, 'output.csv')):
+                    print(f'already found output for {file}. passing')
+                    continue
                 with open(file, 'r') as f:
                     params = yaml.load(f)
                     print(f'running exp with name {params["name"]}')
                     params['output_path'] = os.path.join(root)
                     main(params)
+
+
 
 
 if __name__ == "__main__":
