@@ -1,0 +1,23 @@
+classes: !!python/tuple
+- flute
+- french-horn
+max_train: 200
+model:
+  weights: false
+name: exp_197
+num_components: 2
+num_neighbors: 3
+output_dir: experiments/openl3_behemoth/seed_12/exp_197
+preprocessor:
+  mfcc_kwargs:
+    log_mels: false
+    n_mfcc: 13
+  name: openl3
+  normalize: false
+  openl3_kwargs:
+    content_type: env
+    embedding_size: 512
+    input_repr: mel128
+seed: 12
+sr: 8000
+window_size: 0.09

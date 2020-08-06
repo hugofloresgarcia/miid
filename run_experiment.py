@@ -26,11 +26,12 @@ from ised.utils import ResampleDownmix
 import time
 
 class OpenL3:
-    def __init__(self):
+    def __init__(self, input_repr='mel128', embedding_size=512, content_type='music'):
+        print(f'initing openl3 with rep {input_repr}, embedding {embedding_size}, content {content_type}')
         self.model = openl3.models.load_audio_embedding_model(
-            input_repr='mel128',
-            embedding_size=512,
-            content_type='music'
+            input_repr=input_repr,
+            embedding_size=embedding_size,
+            content_type=content_type
         )
 
     def __call__(self, x, sr):
@@ -84,7 +85,7 @@ def load_preprocessor(params: dict):
             normalize=params['normalize']
         )
     elif name == 'openl3':
-        model = OpenL3()
+        model = OpenL3(**params['openl3_kwargs'])
     else:
         raise ValueError("couldn't find preprocessor name")
     return model
@@ -285,7 +286,7 @@ def main(params):
     # --------------------------------------------
     for label in model.get_labels():
         X, labels = model.get_features_with_labels(label, weights=params['model']['weights'])
-        methods = ['pca', 'umap', 'tsne']
+        methods = ['pca']
 
         fig, ax = plot_utils.get_figure(1, 1, title=f'{label}_weights')
         W = model.weights[label]
@@ -323,6 +324,11 @@ def main(params):
         pca_components=params['num_components'],
         neighbors=params['num_neighbors']
     )
+    if params['preprocessor']['name'] == 'openl3':
+        output['preprocessor'] += '_' + params['preprocessor']['openl3_kwargs']['input_repr']
+        output['preprocessor'] += '_' + params['preprocessor']['openl3_kwargs']['content_type']
+        output['preprocessor'] += '_' + str(params['preprocessor']['openl3_kwargs']['embedding_size'])
+
     output = ised.utils.flatten_dict(output)
     df = pd.DataFrame([output])
     df.to_csv(os.path.join(params['output_path'], 'output.csv'), index=False)
