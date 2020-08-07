@@ -89,7 +89,8 @@ class PhilharmoniaSet(Dataset):
             'audio': audio,
             'sr': sr,
             'instrument': instrument,
-            'pitch': pitch
+            'pitch': pitch, 
+            'label': np.argmax(self.get_onehot(label))
         }
         return data
 

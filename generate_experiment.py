@@ -16,27 +16,10 @@ IN A LIST BECAUSE IT WILL TRY TO ITERATE OVER EVERYTHING
 """
 experiments = {
     'seed': list(range(25)),
-    'max_train': [200],
-    'classes': [('flute', 'french-horn')],
-    'sr': [8000],
-    'window_size': [90e-3],
+    'max_train': [200]
+    'classes': [('flute', 'french-horn')]
     'preprocessor':
-        {
-            'name': ['openl3'],
-            'openl3_kwargs': {
-                'input_repr': ['mel128', 'mel256'], 
-                'content_type': ['music', 'env'], 
-                'embedding_size': [512, 6144]
-            },
-            'normalize': [False],
-            'mfcc_kwargs': {
-                'log_mels': [False],
-                'n_mfcc': [13]
-            }
-        },
-    'model': {
-        'weights': [True, False]
-    },
+    'fischer_reweighting': [True, False]
     'num_components': [2],
     'num_neighbors': [3]
 }
