@@ -312,7 +312,7 @@ def main(params):
 
     params['metrics'] = metrics
 
-    print('experiment done!\n')
+    print('experiment done!')
 
     output = dict(
         name=params['name'],
@@ -335,18 +335,18 @@ def main(params):
 
     # timing
     toc = time.time()
-    print(f'experiment took {toc - tic} s')
+    print(f'experiment took {toc - tic} s\n')
     return output
 
 
 def run(path_to_trials):
-
     for root, dirs, files in os.walk(path_to_trials, topdown=False):
         # every iteration of this on a specific depth
         # since its topdown, the first depth will be single run level
         output = []
-        for dir in dirs:
-            out_path = os.path.join(root, dir, 'output.csv')
+        dirs.sort()
+        for d in dirs:
+            out_path = os.path.join(root, d, 'output.csv')
             if os.path.exists(out_path):
                 df = pd.read_csv(out_path).to_dict('records')
                 output.extend(df)
