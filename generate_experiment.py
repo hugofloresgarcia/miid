@@ -2,7 +2,7 @@ import argparse
 import yaml
 import os
 from itertools import product
-from ised import utils
+from labeler import utils
 import pandas as pd
 
 
@@ -14,14 +14,22 @@ everything inside a list will be decomposed into subsets
 MAKE SURE EVERYTHING (UNLESS ITS ANOTHER DICT) IS WRAPPED
 IN A LIST BECAUSE IT WILL TRY TO ITERATE OVER EVERYTHING
 """
+names = ['openl3']
+input_reprs = ['mel128', 'mel256']
+embedding_sizes = ['512', '6144']
+content_types = ['env', 'music']
+openl3_names = ['-'.join([name, input_repr, embedding_size, content_type])
+            for name, input_repr, embedding_size, content_type
+                in product(names, input_reprs, embedding_sizes, content_types)]
+
 experiments = {
-    'seed': list(range(25)),
-    'max_train': [200]
-    'classes': [('flute', 'french-horn')]
-    'preprocessor':
-    'fischer_reweighting': [True, False]
-    'num_components': [2],
-    'num_neighbors': [3]
+    'seed': list(range(1)),
+    'max_train': [200],
+    'classes': [('flute', 'french-horn')],
+    'preprocessor': ['vggish'],
+    'fischer_reweighting': [True, False],
+    'n_components': [2],
+    'n_neighbors': [3],
 }
 
 def gen_experiments(exps):
@@ -76,8 +84,8 @@ if __name__ == "__main__":
         else:
             subdir = out_path
 
-        path = os.path.join(subdir, name)
-        path = change_name_if_exists(path)
+        path = os.path.join(subdir)
+        # path = change_name_if_exists(path)
 
         with open(os.path.join(path, name+'.yaml'), 'w') as outfile:
             conf['name'] = name

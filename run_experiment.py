@@ -6,9 +6,9 @@ import time
 import argparse
 import yaml
 
-import ised
+import labeler
 
-from ised.ised import Preprocessor
+from labeler.preprocessors import ISED_Preprocessor, OpenL3, VGGish
 import openl3
 
 import matplotlib.pyplot as plt
@@ -24,61 +24,32 @@ from sklearn.decomposition import PCA
 from sklearn.neighbors import KNeighborsClassifier
 
 def do_fischer_reweighting(features, labels):
-    raise NotImplementedError
+    p = [feature for feature, label in zip(features, labels) if label == 1]
+    n = [feature for feature, label in zip(features, labels) if label == 0]
+    p = np.array(p)
+    n = np.array(n)
 
-class OpenL3:
-    def __init__(self, input_repr='mel128', embedding_size=512, content_type='music'):
-        print(f'initing openl3 with rep {input_repr}, embedding {embedding_size}, content {content_type}')
-        self.model = openl3.models.load_audio_embedding_model(
-            input_repr=input_repr,
-            embedding_size=embedding_size,
-            content_type=content_type
-        )
+    weights = (p.mean(axis=0) ** 2 - n.mean(axis=0) ** 2) / \
+                                  (p.std(axis=0) ** 2 + n.std(axis=0) ** 2)
 
-    def __call__(self, x, sr):
-        x = ised.utils.assert_numpy(x)
-        x = x.squeeze(0)
-        # remove channel dimensions
-        embedding, ts = openl3.get_audio_embedding(x, sr, model=self.model,  verbose=False,
-                                             content_type="music", embedding_size=512,
-                                             center=True, hop_size=1)
+    # VGGISH FIX
+    # TODO: the last element in the vggish embedding is always 255. (why)
+    #   this breaks fischer's criterion because the std deviation
+    #   will always be 0, so you end up dividing by 0
+    #   I'm currently replacing the nan by 0 (meaning that the feature will
+    #   have no weight at all). should I be doing this?
+    for i, w in enumerate(weights): 
+        if np.isnan(w):
+            weights[i] = 0
 
-        if embedding.ndim > 1:
-            if embedding.shape[0] > 1:
-                embedding = embedding.mean(axis=0)
-            elif embedding.shape[0] == 1:
-                embedding = embedding.squeeze(0)
+    return np.array(features) 
 
-        assert embedding.ndim == 1
-
-        return embedding
-
-class VGGish:
-    def __init__(self):
-        self.model = torch.hub.load('harritaylor/torchvggish', 'vggish')
-        self.model.eval()
-
-    def __call__(self, x, sr):
-        x = ised.utils.assert_numpy(x)
-        x = x.squeeze(0)
-        # lets do the mean var, dmean dvar on the vggish embedding
-        embedding = self.model(x, sr)
-
-        if embedding.ndim > 1:
-            if embedding.shape[0] > 1:
-                embedding = embedding.mean(axis=0)
-            elif embedding.shape[0] == 1:
-                embedding = embedding.squeeze(0)
-
-        assert embedding.ndim == 1
-
-        return embedding
 
 def load_preprocessor(name: str):
     if name == 'vggish':
         model = VGGish()
     elif name == 'ised_features': # bongjun's ised model
-        model = Preprocessor(
+        model = ISED_Preprocessor(
             sr=8000,
             mfcc_kwargs=dict(
                 log_mels=False, 
@@ -90,7 +61,7 @@ def load_preprocessor(name: str):
         params = name.split('-')
         model = OpenL3(
             input_repr=params[1],
-            embedding_size=params[2], 
+            embedding_size=int(params[2]), 
             content_type=params[3], 
         )
     else:
@@ -101,11 +72,10 @@ def zero_pad(audio, length):
     """
     make sure audio is at least 1 second long
     """
-    if audio.size()[1] < length:
-        l = audio.size()[1]
-        z = torch.zeros(length - l)
-        audio = torch.cat([audio[0], z])
-        audio = audio.unsqueeze(0)
+    if audio.shape[0] < length:
+        l = audio.shape[0]
+        z = np.zeros(length - l)
+        audio = np.concatenate([audio, z])
 
     return audio
 
@@ -161,9 +131,10 @@ def dim_reduce(emb, labels, save_path, n_components=3, method='umap', title_pref
     fig.write_html(save_path + '/' + title_prefix+f"_{method}.html")
 
 def downmix(audio):
-    # downmix if neededa
-        if a.ndim == 2:
-            a = a.mean(axis=0)
+    # downmix if needed
+    if audio.ndim == 2:
+        audio = audio.mean(axis=0)
+    return audio
     
 def main(params):
     # timing
@@ -180,8 +151,8 @@ def main(params):
 
     # load our training and test dataset
     path_to_csv = './data/philharmonia/all-samples/metadata.csv'
-    dataset = ised.datasets.PhilharmoniaSet(path_to_csv, classes)
-    train_loader, val_loader = ised.datasets.train_test_split(
+    dataset = labeler.datasets.PhilharmoniaSet(path_to_csv, classes)
+    train_loader, val_loader = labeler.datasets.train_test_split(
         dataset, batch_size=1, val_split=0.3, shuffle=True,
         random_seed=params['seed'])
 
@@ -194,6 +165,7 @@ def main(params):
     # --------------------------------------------
     print(f'train set is {params["max_train"]} samples')
 
+    #TODO: store the embeddings (or used the ones you already computed dummy)
     # now, train our ised model
     train_features = []
     train_labels  = []
@@ -201,18 +173,21 @@ def main(params):
         if idx > params['max_train']:
             break
         # remove batch dimension
-        sample = ised.datasets.debatch(sample)
-        audio = sample['audio']
+        sample = labeler.datasets.debatch(sample)
+        audio = sample['audio'].detach().numpy()
         sr = sample['sr']
         label = sample['label']
 
         # prepare audio
-        audio = zero_pad(audio)
         audio = downmix(audio)
+        audio = zero_pad(audio, sr * 1) # we need the audio to be at least 1s
 
         feature_vector = preprocessor(audio, sr)
         train_features.append(feature_vector)
-        labels.append(label)
+        train_labels.append(label)
+
+    train_features = np.stack(train_features, axis=0)
+    train_labels = np.stack(train_labels, axis=0)
 
     # --------------------------------------------
     # USE WEIGHTS??!??!!
@@ -233,28 +208,31 @@ def main(params):
     )
 
     # fit our classifier
-    classifier.predict(X, labels)
+    classifier.fit(X, train_labels)
 
     # now, train our ised model
     test_features = []
     test_labels  = []
-    for idx, sample in enumerate(val_loader)):
+    for idx, sample in enumerate(val_loader):
         if idx > int(0.7 * params['max_train']):
             break
         # remove batch dimension
-        sample = ised.datasets.debatch(sample)
-        audio = sample['audio']
+        sample = labeler.datasets.debatch(sample)
+        audio = sample['audio'].detach().numpy()
         sr = sample['sr']
         label = sample['label']
 
         # prepare audio
-        audio = zero_pad(audio)
         audio = downmix(audio)
+        audio = zero_pad(audio, sr * 1)
 
         feature_vector = preprocessor(audio, sr)
         
         test_features.append(feature_vector)
         test_labels.append(label)
+
+    test_features = np.stack(test_features, axis=0)
+    test_labels = np.stack(test_labels, axis=0)
 
     # dim reduce our test set and predict
     test_X = pca.transform(test_features)
@@ -283,16 +261,16 @@ def main(params):
     output = dict(
         name=params['name'],
         seed=params['seed'],
-        preprocessor=params['preprocessor']
-        fischer_reweighting=params['fischer_reweighting']
-        n_components=params['n_components']
-        n_neighbors=params['n_neighbors']
+        preprocessor=params['preprocessor'],
+        fischer_reweighting=params['fischer_reweighting'],
+        n_components=params['n_components'],
+        n_neighbors=params['n_neighbors'],
         metrics=params['metrics']
     )
 
-    output = ised.utils.flatten_dict(output)
+    output = labeler.utils.flatten_dict(output)
     df = pd.DataFrame([output])
-    df.to_csv(os.path.join(params['output_path'], 'output.csv'), index=False)
+    # df.to_csv(os.path.join(params['output_path'], 'output.csv'), index=False)
 
     # timing
     toc = time.time()

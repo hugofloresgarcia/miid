@@ -1,0 +1,11 @@
+classes: !!python/tuple
+- flute
+- french-horn
+fischer_reweighting: false
+max_train: 200
+n_components: 2
+n_neighbors: 3
+name: exp_53
+output_dir: experiments/new_format
+preprocessor: openl3-mel256-512
+seed: 4
