@@ -1,3 +1,4 @@
+import torchaudio
 import torch
 import numpy as np
 
@@ -9,12 +10,9 @@ import yaml
 import labeler
 
 from labeler.preprocessors import ISED_Preprocessor, OpenL3, VGGish
-import openl3
 
-import matplotlib.pyplot as plt
 import pandas as pd
 import sklearn.metrics
-import seaborn as sns
 
 import plotly.express as px
 import umap
@@ -174,15 +172,38 @@ def main(params):
             break
         # remove batch dimension
         sample = labeler.datasets.debatch(sample)
-        audio = sample['audio'].detach().numpy()
-        sr = sample['sr']
         label = sample['label']
+        path_to_audio = sample['path_to_audio']
+        filename = sample['filename']
+
+        # dynamically load embeddings!! (check if we already have it)
+        embedding_root = os.path.join('embeddings', params['preprocessor'])
+        embedding_name = filename[0:-4] + '.json'
+
+        path_to_embedding = os.path.join(embedding_root, embedding_name)
+        if os.path.exists(path_to_embedding):
+            feature_vector = pd.read_json(path_to_embedding, typ='series').tolist()
+            feature_vector = np.array(feature_vector)
+
+            train_features.append(feature_vector)
+            train_labels.append(label)
+            continue
+        
+        # else, let's go ahead and load the audio
+        audio, sr = torchaudio.load(path_to_audio)
+        audio = audio.detach().numpy()
 
         # prepare audio
         audio = downmix(audio)
         audio = zero_pad(audio, sr * 1) # we need the audio to be at least 1s
 
         feature_vector = preprocessor(audio, sr)
+
+        # save our feature vector
+        if not os.path.exists(embedding_root):
+            os.mkdir(embedding_root)
+        pd.Series(feature_vector).to_json(path_to_embedding)
+
         train_features.append(feature_vector)
         train_labels.append(label)
 
@@ -207,6 +228,7 @@ def main(params):
         n_neighbors=params['n_neighbors'],  
     )
 
+
     # fit our classifier
     classifier.fit(X, train_labels)
 
@@ -218,16 +240,38 @@ def main(params):
             break
         # remove batch dimension
         sample = labeler.datasets.debatch(sample)
-        audio = sample['audio'].detach().numpy()
-        sr = sample['sr']
         label = sample['label']
+        path_to_audio = sample['path_to_audio']
+        filename = sample['filename']
+
+        # dynamically load embeddings!! (check if we already have it)
+        embedding_root = os.path.join('embeddings', params['preprocessor'])
+        embedding_name = filename[0:-4] + '.json'
+
+        path_to_embedding = os.path.join(embedding_root, embedding_name)
+        if os.path.exists(path_to_embedding):
+            feature_vector = pd.read_json(path_to_embedding, typ='series').tolist()
+            feature_vector = np.array(feature_vector)
+
+            test_features.append(feature_vector)
+            test_labels.append(label)
+            continue
+        
+        # else, let's go ahead and load the audio
+        audio, sr = torchaudio.load(path_to_audio)
+        audio = audio.detach().numpy()
 
         # prepare audio
         audio = downmix(audio)
-        audio = zero_pad(audio, sr * 1)
+        audio = zero_pad(audio, sr * 1) # we need the audio to be at least 1s
 
         feature_vector = preprocessor(audio, sr)
-        
+
+        # save our feature vector
+        if not os.path.exists(embedding_root):
+            os.mkdir(embedding_root)
+        pd.Series(feature_vector).to_json(path_to_embedding)
+
         test_features.append(feature_vector)
         test_labels.append(label)
 
@@ -291,17 +335,23 @@ def run(path_to_trials):
                 output.extend(df)
                 o = pd.DataFrame(output)
                 o.to_csv(os.path.join(root, 'output.csv'), index=False)
+
+        # output = []
         for file in files:
             file = os.path.join(root, file)
+            
             if file[-5:] == '.yaml':
-                if os.path.exists(os.path.join(root, 'output.csv')):
-                    print(f'already found output for {file}. passing')
-                    continue
+                # if os.path.exists(os.path.join(root, 'output.csv')):
+                #     print(f'already found output for {file}. passing')
+                #     continue
                 with open(file, 'r') as f:
                     params = yaml.load(f)
                     print(f'running exp with name {params["name"]}')
                     params['output_path'] = os.path.join(root)
-                    main(params)
+                    out  = main(params)
+                    output.append(out)
+        o = pd.DataFrame(output)
+        o.to_csv(os.path.join(root, 'output.csv'), index=False)
 
 
 

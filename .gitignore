@@ -10,3 +10,4 @@
 *.html
 /openl3/
 /venv/
+/embeddings/

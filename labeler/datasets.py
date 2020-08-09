@@ -40,10 +40,12 @@ def debatch(data):
     """
      convert batch size 1 to None
     """
-    data['audio'] = data['audio'].squeeze(dim=0)
+    # data['audio'] = data['audio'].squeeze(dim=0)
     # convert str tuples to str
-    data['sr'] = int(data['sr'])
+    # data['sr'] = int(data['sr'])
+    data['filename'] = data['filename'][0]
     data['instrument'] = data['instrument'][0]
+    data['path_to_audio'] = data['path_to_audio'][0]
     data['pitch'] = data['pitch'][0]
     return data
 
@@ -77,20 +79,23 @@ class PhilharmoniaSet(Dataset):
 
     def retrieve_entry(self, entry):
         path_to_audio = entry['path_to_audio']
+        filename = path_to_audio.split('/')[-1]
 
         assert os.path.exists(path_to_audio), f"couldn't find {path_to_audio}"
         # import our audio using torchaudio
-        audio, sr = torchaudio.load(path_to_audio)
+        # audio, sr = torchaudio.load(path_to_audio)
 
         instrument = entry['instrument']
         pitch = entry['pitch']
 
         data = {
-            'audio': audio,
-            'sr': sr,
+            # 'audio': audio,
+            # 'sr': sr,
+            'filename': filename,
             'instrument': instrument,
             'pitch': pitch, 
-            'label': np.argmax(self.get_onehot(instrument))
+            'label': np.argmax(self.get_onehot(instrument)), 
+            'path_to_audio': path_to_audio
         }
         return data
 
