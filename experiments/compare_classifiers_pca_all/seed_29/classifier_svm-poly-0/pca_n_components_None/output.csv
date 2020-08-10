@@ -1,0 +1,2 @@
+name,seed,preprocessor,fischer_reweighting,pca_n_components,classifier,metrics_accuracy_score,metrics_precision,metrics_recall,metrics_f1
+exp_325,29,openl3-mel256-512-music,False,,svm-poly-0,0.5815602836879432,0.0,0.0,0.0

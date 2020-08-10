@@ -23,13 +23,15 @@ openl3_names = ['-'.join([name, input_repr, embedding_size, content_type])
                 in product(names, input_reprs, embedding_sizes, content_types)]
 
 experiments = {
-    'seed': list(range(1)),
+    'seed': list(range(50)),
     'max_train': [200],
     'classes': [('flute', 'french-horn')],
-    'preprocessor': ['vggish'],
-    'fischer_reweighting': [True, False],
-    'n_components': [2],
-    'n_neighbors': [3],
+    'preprocessor': ['openl3-mel256-512-music'],
+    'fischer_reweighting': [False],
+    'pca_n_components': [None],
+    'classifier': ['knn-3', 'knn-5', 'knn-7', 
+                    'svm-rbf', 'svm-linear', 'svm-sigmoid', 
+                    *[f'svm-poly-{degree}' for degree in range(1, 5)]],
 }
 
 def gen_experiments(exps):
@@ -86,6 +88,8 @@ if __name__ == "__main__":
 
         path = os.path.join(subdir)
         # path = change_name_if_exists(path)
+        if not os.path.exists(path):
+            os.makedirs(path)
 
         with open(os.path.join(path, name+'.yaml'), 'w') as outfile:
             conf['name'] = name

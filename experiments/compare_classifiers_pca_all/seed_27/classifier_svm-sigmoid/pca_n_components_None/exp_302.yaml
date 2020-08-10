@@ -1,0 +1,11 @@
+classes: !!python/tuple
+- flute
+- french-horn
+classifier: svm-sigmoid
+fischer_reweighting: false
+max_train: 200
+name: exp_302
+output_dir: experiments/compare_classifiers_pca_all/seed_27/classifier_svm-sigmoid/pca_n_components_None
+pca_n_components: null
+preprocessor: openl3-mel256-512-music
+seed: 27

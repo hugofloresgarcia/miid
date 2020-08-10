@@ -1,0 +1,11 @@
+classes: !!python/tuple
+- flute
+- french-horn
+classifier: svm-poly-4
+fischer_reweighting: false
+max_train: 200
+name: exp_318
+output_dir: experiments/compare_classifiers_pca_all/seed_28/classifier_svm-poly-4/pca_n_components_None
+pca_n_components: null
+preprocessor: openl3-mel256-512-music
+seed: 28

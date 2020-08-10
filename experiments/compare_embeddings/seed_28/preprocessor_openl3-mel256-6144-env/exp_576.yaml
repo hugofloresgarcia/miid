@@ -1,0 +1,11 @@
+classes: !!python/tuple
+- flute
+- french-horn
+fischer_reweighting: true
+max_train: 200
+n_components: 2
+n_neighbors: 3
+name: exp_576
+output_dir: experiments/compare_embeddings/seed_28/preprocessor_openl3-mel256-6144-env
+preprocessor: openl3-mel256-6144-env
+seed: 28

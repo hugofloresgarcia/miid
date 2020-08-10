@@ -61,15 +61,11 @@ def get_time():
     return ('_').join(t.strftime('%x').split('/')) + '_'+('.').join(t.strftime('%X').split(':'))
 
 
-class ResampleDownmix:
+class Resample:
     def __init__(self, old_sr: int, sr: int):
         # resample 
         self.resample = torchaudio.transforms.Resample(old_sr, sr)
         
     def __call__(self, audio: torch.Tensor):
-        # downmix from stereo if needed
-        if audio.size()[-2] == 2:
-            audio = audio.mean(dim=(-2,))
-            
         audio = self.resample(audio)
         return audio

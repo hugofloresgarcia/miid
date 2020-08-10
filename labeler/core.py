@@ -56,7 +56,7 @@ def compute_features(audio, old_sr, sr, mfcc_kwargs, normalize=False):
         mfcc_kwargs: keyworded arguments for torchaudio MFCC
     """
     # downmix if needed and resample
-    utils.ResampleDownmix(old_sr, sr)(audio)
+    utils.Resample(old_sr, sr)(audio)
     # do mfcc
     mfcc = torchaudio.transforms.MFCC(**mfcc_kwargs)(audio)
     mfcc = mfcc.squeeze(0)

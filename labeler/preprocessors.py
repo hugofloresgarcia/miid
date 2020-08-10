@@ -15,6 +15,10 @@ class ISED_Preprocessor:
         self.normalize = normalize
 
     def __call__(self, audio, sr):
+        if isinstance(audio, np.ndarray):
+            audio = torch.Tensor(audio)
+        if audio.ndim == 1:
+            audio = audio.unsqueeze(0)
         feats = compute_features(audio, sr, self.sr, self.mfcc_kwargs, self.normalize)
 
         return feats

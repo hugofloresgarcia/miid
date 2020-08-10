@@ -154,8 +154,8 @@ def compare_trials(path_to_output, filter_by, metrics):
     # HISTOGRAMS
     # --------------------------------------
     num_subplots = len(metrics) * len(conditions)
-    subplot_rows = int(np.sqrt(num_subplots))
-    subplot_cols = num_subplots // subplot_rows
+    subplot_rows = len(conditions)
+    subplot_cols = len(metrics)
 
     # get a figure with out subplots
     fig = plt.figure(figsize=(16, 9))
@@ -167,6 +167,8 @@ def compare_trials(path_to_output, filter_by, metrics):
     ax_idx = 0
     for metric in metrics:
         for cond in conditions:
+            print(f'{ax_idx}')
+            print(f'{len(axes)}')
             ax = axes[ax_idx]
             ax_idx += 1
             # every value is a list of dict entries with output data for a single run

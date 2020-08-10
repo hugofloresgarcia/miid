@@ -6,10 +6,12 @@ import os
 import time
 import argparse
 import yaml
+from natsort import natsorted, ns
+
+from philharmonia_dataset import PhilharmoniaSet, train_test_split, debatch
 
 import labeler
-
-from labeler.preprocessors import ISED_Preprocessor, OpenL3, VGGish
+# from labeler.preprocessors import ISED_Preprocessor, OpenL3, VGGish
 
 import pandas as pd
 import sklearn.metrics
@@ -20,8 +22,11 @@ from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA
 
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn.svm import SVC
+
 
 def do_fischer_reweighting(features, labels):
+
     p = [feature for feature, label in zip(features, labels) if label == 1]
     n = [feature for feature, label in zip(features, labels) if label == 0]
     p = np.array(p)
@@ -40,13 +45,33 @@ def do_fischer_reweighting(features, labels):
         if np.isnan(w):
             weights[i] = 0
 
-    return np.array(features) 
+    return np.array([weights * feature for feature in features])
+
+def load_classifier(name: str):
+    if 'svm' in name:
+        params = name.split('-')
+        kernel = params[1]
+        degree = params[2] if 'poly' in params else 3
+
+        classifier = SVC(
+            kernel=kernel,
+            degree=int(degree)
+        )
+        return classifier
+    elif 'knn' in name:
+        params = name.split('-')
+        classifier = KNeighborsClassifier(
+            n_neighbors=int(params[1])
+        )
+        return classifier
+    else:
+        raise ValueError(f"couldn't find classifier name: {name}")
 
 
 def load_preprocessor(name: str):
     if name == 'vggish':
         model = VGGish()
-    elif name == 'ised_features': # bongjun's ised model
+    elif name == 'ised': # bongjun's ised model
         model = ISED_Preprocessor(
             sr=8000,
             mfcc_kwargs=dict(
@@ -145,12 +170,12 @@ def main(params):
     classes = tuple(params['classes'])
 
     # now, load our preprocessor
-    preprocessor = load_preprocessor(params['preprocessor'])
+    # preprocessor = load_preprocessor(params['preprocessor'])
 
     # load our training and test dataset
-    path_to_csv = './data/philharmonia/all-samples/metadata.csv'
-    dataset = labeler.datasets.PhilharmoniaSet(path_to_csv, classes)
-    train_loader, val_loader = labeler.datasets.train_test_split(
+    path_to_dataset = './data/philharmonia/'
+    dataset = PhilharmoniaSet(path_to_dataset, classes)
+    train_loader, val_loader = train_test_split(
         dataset, batch_size=1, val_split=0.3, shuffle=True,
         random_seed=params['seed'])
 
@@ -163,7 +188,6 @@ def main(params):
     # --------------------------------------------
     print(f'train set is {params["max_train"]} samples')
 
-    #TODO: store the embeddings (or used the ones you already computed dummy)
     # now, train our ised model
     train_features = []
     train_labels  = []
@@ -171,8 +195,8 @@ def main(params):
         if idx > params['max_train']:
             break
         # remove batch dimension
-        sample = labeler.datasets.debatch(sample)
-        label = sample['label']
+        sample = debatch(sample)
+        label = sample['label'].item()
         path_to_audio = sample['path_to_audio']
         filename = sample['filename']
 
@@ -221,12 +245,10 @@ def main(params):
     # --------------------------------------------
     # we will need one classifier per label
 
-    pca = PCA(n_components=params['n_components'])
+    pca = PCA(n_components=params['pca_n_components'])
     X = pca.fit_transform(train_features, train_labels)
 
-    classifier = KNeighborsClassifier(
-        n_neighbors=params['n_neighbors'],  
-    )
+    classifier = load_classifier(params['classifier'])
 
 
     # fit our classifier
@@ -239,8 +261,8 @@ def main(params):
         if idx > int(0.7 * params['max_train']):
             break
         # remove batch dimension
-        sample = labeler.datasets.debatch(sample)
-        label = sample['label']
+        sample = debatch(sample)
+        label = sample['label'].item()
         path_to_audio = sample['path_to_audio']
         filename = sample['filename']
 
@@ -278,6 +300,12 @@ def main(params):
     test_features = np.stack(test_features, axis=0)
     test_labels = np.stack(test_labels, axis=0)
 
+        # --------------------------------------------
+    # USE WEIGHTS??!??!!
+    # --------------------------------------------
+    if params['fischer_reweighting']:
+        test_features = do_fischer_reweighting(test_features, test_labels) 
+
     # dim reduce our test set and predict
     test_X = pca.transform(test_features)
 
@@ -307,27 +335,42 @@ def main(params):
         seed=params['seed'],
         preprocessor=params['preprocessor'],
         fischer_reweighting=params['fischer_reweighting'],
-        n_components=params['n_components'],
-        n_neighbors=params['n_neighbors'],
+        pca_n_components=params['pca_n_components'],
+        classifier=params['classifier'],
         metrics=params['metrics']
     )
 
     output = labeler.utils.flatten_dict(output)
-    df = pd.DataFrame([output])
-    # df.to_csv(os.path.join(params['output_path'], 'output.csv'), index=False)
 
     # timing
     toc = time.time()
     print(f'experiment took {toc - tic} s\n')
+
+    # del preprocessor
+    # del train_features
+    # del train_labels
+    # del test_features
+    # del test_labels
+    # del train_loader
+    # del val_loader
+
     return output
 
-
 def run(path_to_trials):
+
+    # ... some code you want to investigate ...
     for root, dirs, files in os.walk(path_to_trials, topdown=False):
         # every iteration of this on a specific depth
         # since its topdown, the first depth will be single run level
         output = []
-        dirs.sort()
+
+        out_path = os.path.join(root, 'output.csv')
+        if os.path.exists(out_path):
+            df = pd.read_csv(out_path).to_dict('records')
+            output.extend(df)
+
+        dirs = natsorted(dirs, alg=ns.IGNORECASE)
+        dirs.reverse()
         for d in dirs:
             out_path = os.path.join(root, d, 'output.csv')
             if os.path.exists(out_path):
@@ -335,8 +378,11 @@ def run(path_to_trials):
                 output.extend(df)
                 o = pd.DataFrame(output)
                 o.to_csv(os.path.join(root, 'output.csv'), index=False)
+                del o 
 
         # output = []
+        files = natsorted(files, alg=ns.IGNORECASE)
+        files.reverse()
         for file in files:
             file = os.path.join(root, file)
             
@@ -347,14 +393,18 @@ def run(path_to_trials):
                 with open(file, 'r') as f:
                     params = yaml.load(f)
                     print(f'running exp with name {params["name"]}')
+
+                    if params['name'] in [d['name'] for d in output]:
+                        print(f'skipping {params["name"]} as it has already been found in output.csv\n')
+                        continue
+
                     params['output_path'] = os.path.join(root)
                     out  = main(params)
                     output.append(out)
+
+
         o = pd.DataFrame(output)
         o.to_csv(os.path.join(root, 'output.csv'), index=False)
-
-
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
