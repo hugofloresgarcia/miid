@@ -1,0 +1,11 @@
+classes: !!python/tuple
+- english-horn
+- french-horn
+classifier: knn-3
+fischer_reweighting: false
+max_train: 200
+name: exp_271
+output_dir: experiments/compare_embeddings/seed_13
+pca_n_components: 3
+preprocessor: openl3-mel128-6144-music
+seed: 13

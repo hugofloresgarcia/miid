@@ -1,3 +1,0 @@
-name,seed,preprocessor,fischer_reweighting,n_components,n_neighbors,metrics_accuracy_score,metrics_precision,metrics_recall,metrics_f1
-exp_129,6,openl3-mel128-6144-env,False,2,3,0.8581560283687943,0.8125,0.9285714285714286,0.8666666666666666
-exp_128,6,openl3-mel128-6144-env,True,2,3,0.5886524822695035,0.546875,1.0,0.7070707070707071

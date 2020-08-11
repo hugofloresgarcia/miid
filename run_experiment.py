@@ -11,7 +11,7 @@ from natsort import natsorted, ns
 from philharmonia_dataset import PhilharmoniaSet, train_test_split, debatch
 
 import labeler
-# from labeler.preprocessors import ISED_Preprocessor, OpenL3, VGGish
+from labeler.preprocessors import ISED_Preprocessor, OpenL3, VGGish
 
 import pandas as pd
 import sklearn.metrics
@@ -45,7 +45,7 @@ def do_fischer_reweighting(features, labels):
         if np.isnan(w):
             weights[i] = 0
 
-    return np.array([weights * feature for feature in features])
+    return weights
 
 def load_classifier(name: str):
     if 'svm' in name:
@@ -67,7 +67,7 @@ def load_classifier(name: str):
     else:
         raise ValueError(f"couldn't find classifier name: {name}")
 
-
+openl3_models = {}
 def load_preprocessor(name: str):
     if name == 'vggish':
         model = VGGish()
@@ -82,11 +82,15 @@ def load_preprocessor(name: str):
         )
     elif 'openl3' in name:
         params = name.split('-')
+        # this fixes all the memory leakage coming from loading an openl3 model
+        if name in openl3_models:
+            return openl3_models[name]
         model = OpenL3(
             input_repr=params[1],
             embedding_size=int(params[2]), 
             content_type=params[3], 
         )
+        openl3_models[name] = model
     else:
         raise ValueError("couldn't find preprocessor name")
     return model
@@ -121,7 +125,7 @@ def dim_reduce(emb, labels, save_path, n_components=3, method='umap', title_pref
         reducer = PCA(n_components=n_components)
     else:
         raise ValueError
-
+ 
     proj = reducer.fit_transform(emb)
 
     if n_components == 2:
@@ -133,7 +137,7 @@ def dim_reduce(emb, labels, save_path, n_components=3, method='umap', title_pref
         fig = px.scatter(df, x='x', y='y', color='instrument',
                         title=title_prefix+f"_{method}")
 
-    elif n_components ==3:
+    elif n_components == 3:
         df = pd.DataFrame(dict(
             x=proj[:, 0],
             y=proj[:, 1],
@@ -170,7 +174,7 @@ def main(params):
     classes = tuple(params['classes'])
 
     # now, load our preprocessor
-    # preprocessor = load_preprocessor(params['preprocessor'])
+    preprocessor = load_preprocessor(params['preprocessor'])
 
     # load our training and test dataset
     path_to_dataset = './data/philharmonia/'
@@ -238,23 +242,21 @@ def main(params):
     # USE WEIGHTS??!??!!
     # --------------------------------------------
     if params['fischer_reweighting']:
-        train_features = do_fischer_reweighting(train_features, train_labels) 
+        fischer_weights = do_fischer_reweighting(train_features, train_labels) 
+        train_features = np.array([fischer_weights * f for f in train_features])
 
     # --------------------------------------------
-    # CLASSIFIER SETUP AND PCA ON MODEL
+    # CLASSIFIER SETUP AND PCA ON DATA
     # --------------------------------------------
-    # we will need one classifier per label
 
     pca = PCA(n_components=params['pca_n_components'])
     X = pca.fit_transform(train_features, train_labels)
 
     classifier = load_classifier(params['classifier'])
 
-
     # fit our classifier
     classifier.fit(X, train_labels)
 
-    # now, train our ised model
     test_features = []
     test_labels  = []
     for idx, sample in enumerate(val_loader):
@@ -300,11 +302,11 @@ def main(params):
     test_features = np.stack(test_features, axis=0)
     test_labels = np.stack(test_labels, axis=0)
 
-        # --------------------------------------------
+    # --------------------------------------------
     # USE WEIGHTS??!??!!
     # --------------------------------------------
     if params['fischer_reweighting']:
-        test_features = do_fischer_reweighting(test_features, test_labels) 
+        test_features = np.array([fischer_weights * f for f in test_features])
 
     # dim reduce our test set and predict
     test_X = pca.transform(test_features)
@@ -346,22 +348,12 @@ def main(params):
     toc = time.time()
     print(f'experiment took {toc - tic} s\n')
 
-    # del preprocessor
-    # del train_features
-    # del train_labels
-    # del test_features
-    # del test_labels
-    # del train_loader
-    # del val_loader
-
     return output
 
-def run(path_to_trials):
+def run_trials(path_to_trials):
 
-    # ... some code you want to investigate ...
     for root, dirs, files in os.walk(path_to_trials, topdown=False):
-        # every iteration of this on a specific depth
-        # since its topdown, the first depth will be single run level
+        # traverse directory tree top down, collecting an output.csv at every level. 
         output = []
 
         out_path = os.path.join(root, 'output.csv')
@@ -370,7 +362,6 @@ def run(path_to_trials):
             output.extend(df)
 
         dirs = natsorted(dirs, alg=ns.IGNORECASE)
-        dirs.reverse()
         for d in dirs:
             out_path = os.path.join(root, d, 'output.csv')
             if os.path.exists(out_path):
@@ -382,7 +373,6 @@ def run(path_to_trials):
 
         # output = []
         files = natsorted(files, alg=ns.IGNORECASE)
-        files.reverse()
         for file in files:
             file = os.path.join(root, file)
             
@@ -417,4 +407,4 @@ if __name__ == "__main__":
 
     print(exp_path)
 
-    run(exp_path)
+    run_trials(exp_path)

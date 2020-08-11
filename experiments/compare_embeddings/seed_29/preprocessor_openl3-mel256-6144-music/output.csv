@@ -1,3 +1,0 @@
-name,seed,preprocessor,fischer_reweighting,n_components,n_neighbors,metrics_accuracy_score,metrics_precision,metrics_recall,metrics_f1
-exp_599,29,openl3-mel256-6144-music,False,2,3,0.8156028368794326,0.8255813953488372,0.8658536585365854,0.8452380952380953
-exp_598,29,openl3-mel256-6144-music,True,2,3,0.723404255319149,0.9777777777777777,0.5365853658536586,0.6929133858267716

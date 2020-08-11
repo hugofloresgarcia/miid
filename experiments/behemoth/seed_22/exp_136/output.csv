@@ -1,2 +1,0 @@
-name,seed,weights,preprocessor,num_classes,metrics_accuracy_score,metrics_precision,metrics_recall,metrics_f1,pca_components,neighbors
-exp_136,22,True,ised_features,2,0.8865248226950354,0.8909090909090909,0.8305084745762712,0.8596491228070176,2,3

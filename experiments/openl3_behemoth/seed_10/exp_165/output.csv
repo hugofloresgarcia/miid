@@ -1,2 +1,0 @@
-name,seed,weights,preprocessor,num_classes,metrics_accuracy_score,metrics_precision,metrics_recall,metrics_f1,pca_components,neighbors
-exp_165,10,False,openl3_mel128_env_512,2,0.8439716312056738,0.8367346938775511,0.7454545454545455,0.7884615384615385,2,3

@@ -8,6 +8,9 @@ import itertools
 
 import collections
 
+import plotly.express as px
+import plotly
+
 def flatten_dict(d, parent_key='', sep='_'):
     """
     took this from
@@ -41,11 +44,10 @@ def filter_dict(records, filter_list):
     return conditions
 
 
-def statistical_tests(path_to_output, filter_by, metrics):
+def statistical_tests(df, filter_by, metrics, path_to_output):
+
     # get all of our data
-    data = pd.read_csv(
-        os.path.join(path_to_output, 'output.csv')
-    ).to_dict('records')
+    data = df.to_dict('records')
 
 
     # filter by condition
@@ -93,6 +95,20 @@ def statistical_tests(path_to_output, filter_by, metrics):
         )
     return
 
+def do_boxplots(df, filter_by, metrics, path_to_output):
+
+    # merge this condition for the boxplots
+    for idx, row in df.iterrows():
+        row['preprocessor'] = row['preprocessor'] + str(row['fischer_reweighting'])
+
+    # now, do boxplots
+
+    for metric in metrics:
+        fig = px.box(df, x=filter_by, y=metric, points='all', color="fischer_reweighting")
+        fig.write_html(
+            os.path.join(path_to_output, metric + '.html')
+        )
+
 def compare_trials(path_to_output, filter_by, metrics):
 
     assert os.path.exists(path_to_output)
@@ -121,6 +137,11 @@ def compare_trials(path_to_output, filter_by, metrics):
     num_subplots = len(metrics)
     subplot_rows = int(np.sqrt(num_subplots))
     subplot_cols = num_subplots-subplot_rows
+
+    data = pd.DataFrame(conditions)
+
+    fig = px.box()
+
 
     # get a figure with out subplots
     fig = plt.figure(figsize=(16, 9))
@@ -200,9 +221,17 @@ if __name__ == "__main__":
     parser.add_argument('--metrics', '-m', nargs='+', type=str,
                         default='metrics_accuracy_score')
 
+    parser.add_argument('-t', '--t_test', action='store_true')
+
     args = parser.parse_args()
 
-    compare_trials(args.path_to_output, args.filter_by, args.metrics)
-    statistical_tests(args.path_to_output, args.filter_by, args.metrics)
+    df = pd.read_csv(
+        os.path.join(args.path_to_output, 'output.csv')
+    )
+
+    do_boxplots(df, args.filter_by, args.metrics, args.path_to_output)
+    
+    if args.t_test:
+        statistical_tests(df, args.filter_by, args.metrics, args.path_to_output)
 
     print(f'output written to {args.path_to_output}')

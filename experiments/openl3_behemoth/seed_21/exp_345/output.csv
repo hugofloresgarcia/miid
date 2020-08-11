@@ -1,2 +1,0 @@
-name,seed,weights,preprocessor,num_classes,metrics_accuracy_score,metrics_precision,metrics_recall,metrics_f1,pca_components,neighbors
-exp_345,21,False,openl3_mel256_music_512,2,0.8723404255319149,0.9215686274509803,0.7704918032786885,0.8392857142857142,2,3

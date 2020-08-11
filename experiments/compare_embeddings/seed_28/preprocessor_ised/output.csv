@@ -1,3 +1,0 @@
-name,seed,preprocessor,fischer_reweighting,n_components,n_neighbors,metrics_accuracy_score,metrics_precision,metrics_recall,metrics_f1
-exp_563,28,ised,False,2,3,0.8439716312056738,0.8444444444444444,0.9047619047619048,0.8735632183908046
-exp_562,28,ised,True,2,3,0.8226950354609929,0.927536231884058,0.7619047619047619,0.8366013071895425

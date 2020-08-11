@@ -1,0 +1,11 @@
+classes: !!python/tuple
+- english-horn
+- french-horn
+classifier: knn-3
+fischer_reweighting: false
+max_train: 200
+name: exp_209
+output_dir: experiments/embeddings/seed_10
+pca_n_components: null
+preprocessor: openl3-mel128-6144-env
+seed: 10
