@@ -1,7 +1,19 @@
 # things that I've done these past two weeks
 
 ## audacity labeler
+I've forked Jack's labeler repo and updated his code to work with the latest Audacity commit. 
 
+However, I realized that prototyping classification models and porting them from Python to C++ requires a lot of extra work and library-specific adjustments that make trying out different models directly in the C++ implementation rather impractical. 
+
+Instead, I've made a labeling Python server for Audacity that works exactly like Jack's, but is written in Python for easier prototyping. 
+
+The audacity labeler repository is [here](https://github.com/hugofloresgarcia/audacity-labeling). 
+
+The master branch contains the Python implementation of the labeler, while the cpp-labeler branch contains jack's C++ labeler. 
+
+Build/installation instructions are in the repo. 
+
+*note*: both branches only predict 'silence' as an output. I've reached out to jack to help me investigate why that is. I'm using his precompiled classifier model.
 
 ## visualizing embeddings
 I computed VGGish and OpenL3 embeddings and visualized the dataset using t-SNE. Look at the plots here:  
