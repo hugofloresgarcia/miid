@@ -28,7 +28,7 @@ experiments = {
     'classes': [('english-horn', 'french-horn')],
     'preprocessor': ['openl3-mel128-512-music'],
     'fischer_reweighting': [True],
-    'pca_n_components': [None],
+    'pca_n_components': [3],
     'classifier': ['knn-3', 'knn-5', 'knn-7', 
                     'svm-rbf', 'svm-linear', 'svm-sigmoid', 
                     *[f'svm-poly-{degree}' for degree in range(1, 5)]],

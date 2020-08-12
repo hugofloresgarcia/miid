@@ -43,12 +43,10 @@ def filter_dict(records, filter_list):
 
     return conditions
 
-
 def statistical_tests(df, filter_by, metrics, path_to_output):
 
     # get all of our data
     data = df.to_dict('records')
-
 
     # filter by condition
     conditions = filter_dict(data, filter_by)
@@ -229,9 +227,11 @@ if __name__ == "__main__":
         os.path.join(args.path_to_output, 'output.csv')
     )
 
-    do_boxplots(df, args.filter_by, args.metrics, args.path_to_output)
+ 
     
     if args.t_test:
         statistical_tests(df, args.filter_by, args.metrics, args.path_to_output)
+    else: 
+        do_boxplots(df, args.filter_by, args.metrics, args.path_to_output)
 
     print(f'output written to {args.path_to_output}')
