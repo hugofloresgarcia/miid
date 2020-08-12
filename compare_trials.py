@@ -54,7 +54,13 @@ def statistical_tests(df, filter_by, metrics, path_to_output):
     diff = {}
     for condition1, condition2 in itertools.permutations(conditions.keys(), 2):
         tests = {}
+        ## doing this for fischer reweighing
+        if not ('False_' in condition1) and ('True_' in condition2):
+            continue
+        if not condition1[:-6] == condition2[:-5]:
+            continue
         for metric in metrics:
+
             cond1 = conditions[condition1]
             cond2 = conditions[condition2]
 
@@ -67,12 +73,12 @@ def statistical_tests(df, filter_by, metrics, path_to_output):
             w_stat, w_p = stats.wilcoxon(cond1, cond2)
 
             tests[metric] = dict(
-                t_test_stat=t_stat,
-                t_test_pval=t_p,
-                wilcoxon_stat=w_stat,
-                wilcoxon_pval=w_p
+                t_test_stat=round(t_stat, 7),
+                t_test_pval=round(t_p, 13),
+                wilcoxon_stat=round(w_stat, 7),
+                wilcoxon_pval=round(w_p, 13)
             )
-        pairs[f'{condition1}{condition2}'] = tests
+        pairs[f'{condition1[:-6]}'] = tests
 
     metrics = {}
     for pair in pairs:
@@ -106,107 +112,6 @@ def do_boxplots(df, filter_by, metrics, path_to_output):
         fig.write_html(
             os.path.join(path_to_output, metric + '.html')
         )
-
-def compare_trials(path_to_output, filter_by, metrics):
-
-    assert os.path.exists(path_to_output)
-
-    # load our csv
-    data = pd.read_csv(
-        os.path.join(path_to_output, 'output.csv')
-    ).to_dict('records')
-
-    # filter our data by preprocessor and weights
-    conditions = {}
-
-    for record in data:
-        key = get_key(record, filter_by)
-        if key not in conditions:
-            conditions[key] = []
-        else:
-            conditions[key].append(record)
-
-    num_trials = [len(l) for l in conditions.values()]
-    num_trials = min(num_trials)+1
-
-    # --------------------------------------
-    # BOXPLOTS
-    # --------------------------------------
-    num_subplots = len(metrics)
-    subplot_rows = int(np.sqrt(num_subplots))
-    subplot_cols = num_subplots-subplot_rows
-
-    data = pd.DataFrame(conditions)
-
-    fig = px.box()
-
-
-    # get a figure with out subplots
-    fig = plt.figure(figsize=(16, 9))
-    axes = fig.subplots(subplot_rows, subplot_cols)
-    axes = [item for sublist in axes for item in sublist]
-
-    fig.suptitle(f'metrics over {num_trials} trials')
-
-    for ax, metric in zip(axes, metrics):
-        # every value is a list of dict entries with output data for a single run
-        # the input data for our boxplot
-        x = [[d[metric] for d in value] for value in conditions.values()]
-
-        # do a boxplot w our data
-        ax.boxplot(x, showmeans=True)
-        ax.set_title(metric)
-
-        ticks = [key for key in conditions.keys()]
-        ax.set_xticks(range(1, len(ticks)+1))
-        ax.set_xticklabels(ticks, fontsize='x-small', rotation=45)
-
-    fig.tight_layout()
-    fig.subplots_adjust(top=0.9)
-    fig.savefig(
-        os.path.join(path_to_output, 'metrics.png')
-    )
-    # --------------------------------------
-    # --------------------------------------
-
-    # --------------------------------------
-    # HISTOGRAMS
-    # --------------------------------------
-    num_subplots = len(metrics) * len(conditions)
-    subplot_rows = len(conditions)
-    subplot_cols = len(metrics)
-
-    # get a figure with out subplots
-    fig = plt.figure(figsize=(16, 9))
-    axes = fig.subplots(subplot_rows, subplot_cols)
-    axes = [item for sublist in axes for item in sublist]
-
-    fig.suptitle(f'distribution over {num_trials} trials')
-
-    ax_idx = 0
-    for metric in metrics:
-        for cond in conditions:
-            print(f'{ax_idx}')
-            print(f'{len(axes)}')
-            ax = axes[ax_idx]
-            ax_idx += 1
-            # every value is a list of dict entries with output data for a single run
-            # the input data for our boxplot
-            x = [np.round(d[metric], 2) for d in conditions[cond]]
-
-            # do a boxplot w our data
-            ax.hist(x)
-            ax.set_xlim(0.25, 1)
-            ax.set_ylim(0, 20)
-            ax.set_title(f'{cond}_{metric}')
-
-    fig.tight_layout()
-    fig.subplots_adjust(top=0.9)
-    fig.savefig(
-        os.path.join(path_to_output, 'distributions.png')
-    )
-    # --------------------------------------
-    # --------------------------------------
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

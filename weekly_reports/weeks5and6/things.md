@@ -16,7 +16,7 @@ Build/installation instructions are in the repo.
 *note*: both branches only predict 'silence' as an output, since they are using Jack's precompiled model, which hasn't been trained yet.
 
 
-## visualizing embeddings
+## visualizing dataset w/ embeddings
 I computed VGGish and OpenL3 embeddings and visualized the dataset using t-SNE. Look at the plots here:  
 
 - [vggish](./figs/vggish_tsne.html)
@@ -30,7 +30,7 @@ ran 50 trials, comparing the preprocessor representation used.
 The task is to classify english horns from french horns. A 3-Nearest-Neighbor classifier was implemented. 
 
 signal flow:   
-- raw audio --> preprocessor --> PCA (components=3) --> fischer reweighting --> classifier
+- raw audio --> preprocessor --> PCA (components=16) --> fischer reweighting --> classifier
 
 conditions tested:
 
@@ -47,28 +47,43 @@ number of validation samples (per trial): 140
 every trial, a subset of the dataset would be randomly sampled with a fixed random seed for all conditions. the seed number for each trial is stored in its .yaml config.
 
 ### accuracy
-![emb_accuracy](./figs/pca_3/embeddings_accuracy.png)
+![emb_accuracy](./figs/pca_16/embeddings_accuracy.png)
 
 ### precision
-![emb_precision](./figs/pca_3/embeddings_precision.png)
+![emb_precision](./figs/pca_16/embeddings_precision.png)
 
 ### recall
-![emb_recall](./figs/pca_3/embeddings_recall.png)
+![emb_recall](./figs/pca_16/embeddings_recall.png)
 
 ### f1 score
-![emb_f1](./figs/pca_3/embeddings_f1.png)
+![emb_f1](./figs/pca_16/embeddings_f1.png)
 
-The OpenL3 variants show better performance than both vggish and ised, particularly after fischer reweighting.
+The OpenL3 variants show much better performance than both vggish and ised.
 
-### number of PCA components to keep? 
-I ran the experiment above again with the exact same conditions, but kept all of the PCA components for classification. The results are here:
+### pairwise tests for fischer reweighting
+These are the results for pairwise tests for each embedding before and after fischer reweighting. 
 
-- [f1 score](./figs/pca_all/embeddings_f1.png)
-- [precision](./figs/pca_all/embeddings_precision.png)
-- [recall](./figs/pca_all/embeddings_recall.png)
-- [accuracy](./figs/pca_all/embeddings_accuracy.png)
+|                           | t_test_stat | t_test_pval    | wilcoxon_stat | wilcoxon_pval   | 
+|---------------------------|-------------|-----------------|--------------|-----------------| 
+| ised_                     | -10.0892627 | 2e-13           | 17.0         | 3.1494e-09      | 
+| vggish_                   | 0.4868285   | 0.6285955811352 | 512.0        | 0.4356867512842 | 
+| openl3-mel128-512-env_    | -4.8366817  | 1.40276356e-05  | 143.0        | 3.99138596e-05  | 
+| openl3-mel128-512-music_  | -3.7397758  | 0.0004910251359 | 181.5        | 0.00043174093   | 
+| openl3-mel128-6144-env_   | -9.160914   | 4.1e-12         | 23.0         | 1.03466e-08     | 
+| openl3-mel128-6144-music_ | -11.5280025 | 0.0             | 0.0          | 2.3968e-09      | 
+| openl3-mel256-512-env_    | -2.4769165  | 0.0168271160691 | 349.0        | 0.036418422055  | 
+| openl3-mel256-512-music_  | -0.2514963  | 0.8025040252926 | 499.0        | 0.6502585697615 | 
+| openl3-mel256-6144-env_   | -9.7491713  | 6e-13           | 0.0          | 7.6159e-09      | 
+| openl3-mel256-6144-music_ | -9.9450644  | 3e-13           | 22.0         | 6.4273e-09      | 
 
-TLDR: OpenL3 performs much better than VGGish and ISED if you keep more than 3 of its principal components. With PCA-components = ALL, OpenL3 solves the classification task almost perfectly, but doesn't benefit from fischer reweighting much, although the wilcoxon test does indicate that the differences are statistically significant for some of the OpenL3 variants.
+
+- It looks like only some OpenL3 variants benefit from fischer reweighting. Moreover, the benefit doesn't look very significant (from looking at the boxplots)
+- ISED benefits a good deal from feature reweighting
+- VGGish doesn't benefit from fischer reweighting as much when the number of PCA components are greater than 1.
+
+#### vggish -> number of PCA components vs F1 score (with and without reweighting)
+![vggish](./figs/vggish.png) 
+
 
 ## comparing classifiers
 
@@ -79,7 +94,7 @@ The task is to classify english horns from french horns.
 preprocessor: openl3-mel128-512-music variant
 
 signal flow:  
-raw audio --> preprocessor --> PCA (components=3) --> fischer reweighting --> classifier
+raw audio --> preprocessor --> PCA (components=16) --> fischer reweighting --> classifier
 
 conditions tested:
 
@@ -99,16 +114,16 @@ number of validation samples (per trial): 140
 every trial, a subset of the dataset would be randomly sampled with a fixed random seed for all conditions. the seed number for each trial is stored in its .yaml config.
 
 ### accuracy
-![emb_accuracy](./figs/pca_3/classifiers_accuracy.png)
+![emb_accuracy](./figs/pca_16/classifiers_accuracy.png)
 
 ### precision
-![emb_precision](./figs/pca_3/classifiers_precision.png)
+![emb_precision](./figs/pca_16/classifiers_precision.png)
 
 ### recall
-![emb_recall](./figs/pca_3/classifiers_recall.png)
+![emb_recall](./figs/pca_16/classifiers_recall.png)
 
 ### f1 
-![emb_f1](./figs/pca_3/classifiers_f1.png)
+![emb_f1](./figs/pca_16/classifiers_f1.png)
 
 
-Linear SVM seems to take the cake here, although not by much. 
+Linear SVM seems to take the cake here. 

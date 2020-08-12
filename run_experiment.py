@@ -250,7 +250,9 @@ def main(params):
     # --------------------------------------------
 
     pca = PCA(n_components=params['pca_n_components'])
+    #TODO: standardize features prior to pca
     X = pca.fit_transform(train_features, train_labels)
+    # X = train_features
 
     classifier = load_classifier(params['classifier'])
 
@@ -309,7 +311,9 @@ def main(params):
         test_features = np.array([fischer_weights * f for f in test_features])
 
     # dim reduce our test set and predict
+    #TODO: standardize features prior to pca
     test_X = pca.transform(test_features)
+    # test_X = test_features
 
     # make our predictions
     test_predict = classifier.predict(test_X)
@@ -358,6 +362,7 @@ def run_trials(path_to_trials):
 
         out_path = os.path.join(root, 'output.csv')
         if os.path.exists(out_path):
+            print(out_path)
             df = pd.read_csv(out_path).to_dict('records')
             output.extend(df)
 

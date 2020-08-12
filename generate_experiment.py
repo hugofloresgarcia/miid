@@ -22,17 +22,17 @@ openl3_names = ['-'.join([name, input_repr, embedding_size, content_type])
             for name, input_repr, embedding_size, content_type
                 in product(names, input_reprs, embedding_sizes, content_types)]
 
-experiments = {
-    'seed': list(range(50)),
-    'max_train': [200],
-    'classes': [('english-horn', 'french-horn')],
-    'preprocessor': ['openl3-mel128-512-music'],
-    'fischer_reweighting': [True],
-    'pca_n_components': [3],
-    'classifier': ['knn-3', 'knn-5', 'knn-7', 
-                    'svm-rbf', 'svm-linear', 'svm-sigmoid', 
-                    *[f'svm-poly-{degree}' for degree in range(1, 5)]],
-}
+# experiments = {
+#     'seed': list(range(50)),
+#     'max_train': [200],
+#     'classes': [('english-horn', 'french-horn')],
+#     'preprocessor': ['openl3-mel128-512-music'],
+#     'fischer_reweighting': [True],
+#     'pca_n_components': [16],
+#     'classifier': ['knn-3', 'knn-5', 'knn-7', 
+#                     'svm-rbf', 'svm-linear', 'svm-sigmoid', 
+#                     *[f'svm-poly-{degree}' for degree in range(1, 5)]],
+# }
 
 # experiments = {
 #     'seed': list(range(50)),
@@ -40,7 +40,7 @@ experiments = {
 #     'classes': [('english-horn', 'french-horn')],
 #     'preprocessor': ['ised', 'vggish', *openl3_names],
 #     'fischer_reweighting': [True, False],
-#     'pca_n_components': [None],
+#     'pca_n_components': [16],
 #     'classifier': ['knn-3'],
 # }
 
