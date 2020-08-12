@@ -16,7 +16,7 @@ install requirements
 `pip3 install -r requirements.txt`
 
 generate trial configs  
-`python3 generate_experiment.py -o path/to/my/experiment -g seed 
+`python3 generate_experiment.py -o path/to/my/experiment -g seed`
 
 run experiment  
 `python3 run_experiment.py -p path/to/my/experiment`
