@@ -13,7 +13,8 @@ The master branch contains the Python implementation of the labeler, while the c
 
 Build/installation instructions are in the repo. 
 
-*note*: both branches only predict 'silence' as an output. I've reached out to jack to help me investigate why that is. I'm using his precompiled classifier model.
+*note*: both branches only predict 'silence' as an output, since they are using Jack's precompiled model, which hasn't been trained yet.
+
 
 ## visualizing embeddings
 I computed VGGish and OpenL3 embeddings and visualized the dataset using t-SNE. Look at the plots here:  
