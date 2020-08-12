@@ -58,7 +58,7 @@ every trial, a subset of the dataset would be randomly sampled with a fixed rand
 ### f1 score
 ![emb_f1](./figs/embeddings_f1.png)
 
-The OpenL3 variants show better performance than both vggish and ised. Additionally, all models show an improvement in performance after fischer reweighing. 
+The OpenL3 variants show better performance than both vggish and ised. Also, it seems as if the OpenL3 models benefit from fischer reweighing less than ISED and VGGish, probably because the classes may already be (mostly) linearly separable in OpenL3 space. 
 
 
 ## comparing classifiers
