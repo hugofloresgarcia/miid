@@ -9,7 +9,7 @@ Instead, I've made a labeling Python server for Audacity that works exactly like
 
 The audacity labeler repository is [here](https://github.com/hugofloresgarcia/audacity-labeling). 
 
-The master branch contains the Python implementation of the labeler, while the cpp-labeler branch contains jack's C++ labeler. 
+The master branch contains the Python implementation of the labeler, while the [cpp-labeler](https://github.com/hugofloresgarcia/audacity-labeling/tree/cpp-labeler) branch contains jack's C++ labeler (updated to work with Audacity's cmake build). 
 
 Build/installation instructions are in the repo. 
 
@@ -30,6 +30,7 @@ ran 50 trials, comparing the preprocessor representation used.
 The task is to classify english horns from french horns. A 3-Nearest-Neighbor classifier was implemented. 
 
 signal flow:   
+
 - raw audio --> preprocessor --> PCA (components=16) --> fischer reweighting --> classifier
 
 conditions tested:
@@ -63,18 +64,18 @@ The OpenL3 variants show much better performance than both vggish and ised.
 ### pairwise tests for fischer reweighting
 These are the results for pairwise tests for each embedding before and after fischer reweighting. 
 
-|                           | t_test_stat | t_test_pval    | wilcoxon_stat | wilcoxon_pval   | 
-|---------------------------|-------------|-----------------|--------------|-----------------| 
-| ised_                     | -10.0892627 | 2e-13           | 17.0         | 3.1494e-09      | 
-| vggish_                   | 0.4868285   | 0.6285955811352 | 512.0        | 0.4356867512842 | 
-| openl3-mel128-512-env_    | -4.8366817  | 1.40276356e-05  | 143.0        | 3.99138596e-05  | 
-| openl3-mel128-512-music_  | -3.7397758  | 0.0004910251359 | 181.5        | 0.00043174093   | 
-| openl3-mel128-6144-env_   | -9.160914   | 4.1e-12         | 23.0         | 1.03466e-08     | 
-| openl3-mel128-6144-music_ | -11.5280025 | 0.0             | 0.0          | 2.3968e-09      | 
-| openl3-mel256-512-env_    | -2.4769165  | 0.0168271160691 | 349.0        | 0.036418422055  | 
-| openl3-mel256-512-music_  | -0.2514963  | 0.8025040252926 | 499.0        | 0.6502585697615 | 
-| openl3-mel256-6144-env_   | -9.7491713  | 6e-13           | 0.0          | 7.6159e-09      | 
-| openl3-mel256-6144-music_ | -9.9450644  | 3e-13           | 22.0         | 6.4273e-09      | 
+|                          | t_test stat | t_test pval    | wilcoxon_stat | wilcoxon_pval   | 
+|--------------------------|-------------|-----------------|--------------|-----------------| 
+| ised                     | -10.0892627 | 2e-13           | 17.0         | 3.1494e-09      | 
+| vggish                   | 0.4868285   | 0.6285955811352 | 512.0        | 0.4356867512842 | 
+| openl3-mel128-512-env    | -4.8366817  | 1.40276356e-05  | 143.0        | 3.99138596e-05  | 
+| openl3-mel128-512-music  | -3.7397758  | 0.0004910251359 | 181.5        | 0.00043174093   | 
+| openl3-mel128-6144-env   | -9.160914   | 4.1e-12         | 23.0         | 1.03466e-08     | 
+| openl3-mel128-6144-music | -11.5280025 | 0.0             | 0.0          | 2.3968e-09      | 
+| openl3-mel256-512-env    | -2.4769165  | 0.0168271160691 | 349.0        | 0.036418422055  | 
+| openl3-mel256-512-music  | -0.2514963  | 0.8025040252926 | 499.0        | 0.6502585697615 | 
+| openl3-mel256-6144-env   | -9.7491713  | 6e-13           | 0.0          | 7.6159e-09      | 
+| openl3-mel256-6144-music | -9.9450644  | 3e-13           | 22.0         | 6.4273e-09      | 
 
 
 - It looks like only some OpenL3 variants benefit from fischer reweighting. Moreover, the benefit doesn't look very significant (from looking at the boxplots)
@@ -94,7 +95,8 @@ The task is to classify english horns from french horns.
 preprocessor: openl3-mel128-512-music variant
 
 signal flow:  
-raw audio --> preprocessor --> PCA (components=16) --> fischer reweighting --> classifier
+
+- raw audio --> preprocessor --> PCA (components=16) --> fischer reweighting --> classifier
 
 conditions tested:
 
