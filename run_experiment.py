@@ -9,10 +9,10 @@ import yaml
 from natsort import natsorted, ns
 
 from joblib import dump
-from philharmonia_dataset import PhilharmoniaSet, train_test_split, debatch
 
 import labeler
 from labeler.preprocessors import ISED_Preprocessor, OpenL3, VGGish
+from philharmonia_dataset import PhilharmoniaSet, train_test_split, debatch
 
 import json
 import pandas as pd
@@ -283,7 +283,7 @@ def save_confusion_matrix(m, labels, save_path):
     fig['data'][0]['showscale'] = True
     fig.write_html(save_path)
 
-def main(params):
+def train(params):
     # timing
     tic = time.time()
 
@@ -441,7 +441,7 @@ def run_trials(path_to_trials):
                         continue
 
                     params['output_path'] = os.path.join(root)
-                    out  = main(params)
+                    out = train(params)
                     output.append(out)
 
 
