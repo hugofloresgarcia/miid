@@ -15,9 +15,9 @@ metrics:
 | 0.910864376880772      | 0.8894307492725116 | 0.8893196202437047 | 0.888798657613511 | 
 
 
-the confusion matrix is [here](https://hugofloresgarcia.github.io/summer_milestones/runs/openl3_linear-svm_no-percussion/results/confusion_matrix.html)
+the confusion matrix is [here](https://hugofloresgarcia.github.io/summer_milestones/runs/openl3_svm-linear_no-percussion/results/confusion_matrix.html)
 
-the normalized confusion matrix is [here](https://hugofloresgarcia.github.io/summer_milestones/runs/openl3_linear-svm_no-percussion/results/confusion_matrix_normalized.html)
+the normalized confusion matrix is [here](https://hugofloresgarcia.github.io/summer_milestones/runs/openl3_svm-linear_no-percussion/results/confusion_matrix_normalized.html)
 
 ### DCASE papers
 
