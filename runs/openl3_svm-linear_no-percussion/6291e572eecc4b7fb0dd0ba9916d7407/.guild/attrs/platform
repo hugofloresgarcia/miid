@@ -1,0 +1,6 @@
+architecture: '64bit '
+cpus: 8
+processor: i386
+python_version: 3.7.5 (default, Nov  1 2019, 02:16:23) [Clang 11.0.0 (clang-1100.0.33.8)]
+uname: 'Darwin MacBook-Pro-6 19.3.0 Darwin Kernel Version 19.3.0: Thu Jan  9 20:58:23
+  PST 2020; root:xnu-6153.81.5~1/RELEASE_X86_64 x86_64 i386'
