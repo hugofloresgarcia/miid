@@ -44,6 +44,20 @@ openl3_names = ['-'.join([name, input_repr, embedding_size, content_type])
 #     'classifier': ['knn-3'],
 # }
 
+experiments = {
+    'seed': [0], 
+    'max_train': [14e3],
+    'classes': [('english-horn', 'french-horn',
+                'bass-clarinet', 'banjo', 'contrabassoon', 'guitar',
+                'saxophone', 'violin', 'mandolin', 'trombone', 'bassoon', 'double-bass',
+                'trumpet', 'cello', 'flute', 'oboe', 'tuba', 'clarinet', 'viola',
+                )],
+    'preprocessor': ['openl3-mel256-6144-music'],
+    'fischer_reweighting': [True],
+    'pca_n_components': [128],
+    'classifier': ['svm-linear'],
+}
+
 def gen_experiments(exps):
     k, v = zip(*exps.items())
     v = (gen_experiments(val) if isinstance(val, dict) else val for val in v)

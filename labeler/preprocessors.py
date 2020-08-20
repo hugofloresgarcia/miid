@@ -24,6 +24,8 @@ class ISED_Preprocessor:
         return feats
 
 class OpenL3:
+    models = {}
+    
     def __init__(self, input_repr='mel128', embedding_size=512, content_type='music'):
         print(f'initing openl3 with rep {input_repr}, embedding {embedding_size}, content {content_type}')
         self.model = openl3.models.load_audio_embedding_model(
@@ -38,16 +40,10 @@ class OpenL3:
         # remove channel dimensions
         embedding, ts = openl3.get_audio_embedding(x, sr, model=self.model,  verbose=False,
                                              content_type="music", embedding_size=512,
-                                             center=True, hop_size=1)
+                                             center=False, hop_size=1)
 
-        if embedding.ndim > 1:
-            if embedding.shape[0] > 1:
-                embedding = embedding.mean(axis=0)
-            elif embedding.shape[0] == 1:
-                embedding = embedding.squeeze(0)
 
-        assert embedding.ndim == 1
-
+        assert embedding.ndim == 2
         return embedding
 
 class VGGish:
@@ -62,12 +58,5 @@ class VGGish:
         embedding = self.model(x, sr)
         embedding = embedding.detach().numpy()
 
-        if embedding.ndim > 1:
-            if embedding.shape[0] > 1:
-                embedding = embedding.mean(axis=0)
-            elif embedding.shape[0] == 1:
-                embedding = embedding.squeeze(0)
-
-        assert embedding.ndim == 1
-
+        assert embedding.ndim == 2
         return embedding

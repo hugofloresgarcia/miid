@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "args": ["-p","experiments/fischerr"]
+            "args": ["-p","experiments/openl3_svm-linear_1s-chunks_no-weights"]
         }
     ]
 }

@@ -8,15 +8,19 @@ import argparse
 import yaml
 from natsort import natsorted, ns
 
+from joblib import dump
 from philharmonia_dataset import PhilharmoniaSet, train_test_split, debatch
 
 import labeler
 from labeler.preprocessors import ISED_Preprocessor, OpenL3, VGGish
 
+import json
 import pandas as pd
 import sklearn.metrics
 
 import plotly.express as px
+import plotly.figure_factory as ff
+
 import umap
 from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA
@@ -25,7 +29,7 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
 
 
-def do_fischer_reweighting(features, labels):
+def get_fischer_weights(features, labels):
 
     p = [feature for feature, label in zip(features, labels) if label == 1]
     n = [feature for feature, label in zip(features, labels) if label == 0]
@@ -67,7 +71,6 @@ def load_classifier(name: str):
     else:
         raise ValueError(f"couldn't find classifier name: {name}")
 
-openl3_models = {}
 def load_preprocessor(name: str):
     if name == 'vggish':
         model = VGGish()
@@ -83,8 +86,8 @@ def load_preprocessor(name: str):
     elif 'openl3' in name:
         params = name.split('-')
         # this fixes all the memory leakage coming from loading an openl3 model
-        if name in openl3_models:
-            return openl3_models[name]
+        if name in OpenL3.models:
+            return OpenL3.models[name]
         model = OpenL3(
             input_repr=params[1],
             embedding_size=int(params[2]), 
@@ -106,16 +109,18 @@ def zero_pad(audio, length):
 
     return audio
 
-def dim_reduce(emb, labels, save_path, n_components=3, method='umap', title_prefix = ''):
+def dim_reduce(emb, labels, save_path, n_components=3, method='umap', title=''):
     """
     dimensionality reduction for visualization!
+    saves an html plotly figure to save_path
     parameters:
         emb (np.ndarray): the samples to be reduces with shape (samples, features)
         labels (list): list of labels for embedding
-        save_path (str): root directory of where u wanna save ur figure
+        save_path (str): path where u wanna save ur figure
         method (str): umap, tsne, or pca
-        title_prefix (str): title for your figure
-
+        title (str): title for ur figure
+    returns:    
+        proj (np.ndarray): projection vector with shape (samples, dimensions)
     """
     if method == 'umap':
         reducer = umap.UMAP(n_components=n_components)
@@ -146,7 +151,7 @@ def dim_reduce(emb, labels, save_path, n_components=3, method='umap', title_pref
         ))
         fig = px.scatter_3d(df, x='x', y='y', z='z',
                         color='instrument',
-                        title=title_prefix+f"_{method}")
+                        title=title)
     else:
         raise ValueError("cant plot more than 3 components")
 
@@ -155,14 +160,129 @@ def dim_reduce(emb, labels, save_path, n_components=3, method='umap', title_pref
                                             color='DarkSlateGrey')),
                       selector=dict(mode='markers'))
 
-    fig.write_html(save_path + '/' + title_prefix+f"_{method}.html")
+    fig.write_html(save_path)
+    return proj
 
 def downmix(audio):
     # downmix if needed
     if audio.ndim == 2:
         audio = audio.mean(axis=0)
     return audio
+
+def get_features_and_labels(dataloader, preprocessor, embedding_root):
+    """ compute preprocessor features and get labels from dataloader
+
+    params:
+        dataloader (torch DataLoader): dataloader to retrieve data from
+        preprocessor (preprocessor object)
+        embedding_root (root dir to look for precomputed embeddings)
     
+    returns:
+
+    """
+    features = []
+    labels = []
+    label_indices = {}
+    for idx, sample in enumerate(dataloader):
+
+        print(f'processing {idx} out of {len(dataloader)}')
+
+        # remove batch dimension
+        sample = debatch(sample)
+        label = sample['label'].item()
+        path_to_audio = sample['path_to_audio']
+        filename = sample['filename']
+
+        label_indices[label] = sample['instrument']
+
+        embedding_name = filename[0:-4] + '.json'
+
+        path_to_embedding = os.path.join(embedding_root, embedding_name)
+        if os.path.exists(path_to_embedding):
+            print('using preloaded embedding\n')
+
+            feature_vector = json.load(open(path_to_embedding))
+            feature_vector = np.array([[v for k, v in val.items()] for key, val in feature_vector.items()]).T
+
+            assert feature_vector.ndim == 2
+
+            features.extend(feature_vector)
+            # create an array of labels of the same shape as our feature vector
+            # because we need a label every 1 second
+            labels.extend(
+                np.full_like(feature_vector[:, 0], label)
+            )
+            continue
+        
+        # else, let's go ahead and load the audio
+        audio, sr = torchaudio.load(path_to_audio)
+        audio = audio.detach().numpy()
+
+        # prepare audio
+        audio = downmix(audio)
+        audio = zero_pad(audio, sr * 1) # we need the audio to be at least 1s
+
+        feature_vector = preprocessor(audio, sr)
+
+        # save our feature vector
+        if not os.path.exists(embedding_root):
+            os.mkdir(embedding_root)
+        pd.DataFrame(feature_vector).to_json(path_to_embedding)
+
+        features.extend(feature_vector)
+        labels.extend(
+                np.full_like(feature_vector[:, 0], label)
+        )
+
+        print('\n')
+
+    # convert to np array
+    features = np.stack(features, axis=0)
+    labels = np.stack(labels, axis=0)
+
+    return features, labels, [v for k,v in sorted(label_indices.items(), key=lambda x: x[0])]
+
+def save_confusion_matrix(m, labels, save_path):
+    import plotly.figure_factory as ff
+
+    x = labels
+    y = labels
+
+    # change each element of z to type string for annotations
+    m_text = [[str(y) for y in x] for x in m]
+
+    # set up figure 
+    fig = ff.create_annotated_heatmap(m, x=x, y=y, annotation_text=m_text, colorscale='Viridis')
+
+    # add title
+    fig.update_layout(title_text='<b>Confusion matrix</b>')
+
+    # # add custom xaxis title
+    # fig.add_annotation(dict(font=dict(color="black",size=14),
+    #                         x=0.5,
+    #                         y=-0.15,
+    #                         showarrow=False,
+    #                         text="Predicted value",
+    #                         xref="paper",
+    #                         yref="paper"))
+
+    # # add custom yaxis title
+    # fig.add_annotation(dict(font=dict(color="black",size=14),
+    #                         x=-0.35,
+    #                         y=0.5,
+    #                         showarrow=False,
+    #                         text="Real value",
+    #                         textangle=-90,
+    #                         xref="paper",
+    #                         yref="paper"))
+
+    # adjust margins to make room for yaxis title
+    fig.update_layout(margin=dict(t=50, l=200))
+
+    # add colorbar
+    fig['data'][0]['showscale'] = True
+    fig.write_html(save_path)
+
 def main(params):
     # timing
     tic = time.time()
@@ -178,131 +298,53 @@ def main(params):
 
     # load our training and test dataset
     path_to_dataset = './data/philharmonia/'
-    dataset = PhilharmoniaSet(path_to_dataset, classes)
+    dataset = PhilharmoniaSet(path_to_dataset, classes, load_audio=False)
     train_loader, val_loader = train_test_split(
-        dataset, batch_size=1, val_split=0.3, shuffle=True,
-        random_seed=params['seed'])
+                                        dataset, 
+                                        batch_size=1, 
+                                        val_split=params['val_split'], 
+                                        shuffle=True,
+                                        random_seed=params['seed']
+                                        )
 
-
-    if params['max_train'] is None:
-        params['max_train'] = len(train_loader)
+    print(dataset.get_class_data())
 
     # --------------------------------------------
     # TRAIN LOOP
     # --------------------------------------------
-    print(f'train set is {params["max_train"]} samples')
 
     # now, train our ised model
-    train_features = []
-    train_labels  = []
-    for idx, sample in enumerate(train_loader):
-        if idx > params['max_train']:
-            break
-        # remove batch dimension
-        sample = debatch(sample)
-        label = sample['label'].item()
-        path_to_audio = sample['path_to_audio']
-        filename = sample['filename']
-
-        # dynamically load embeddings!! (check if we already have it)
-        embedding_root = os.path.join('embeddings', params['preprocessor'])
-        embedding_name = filename[0:-4] + '.json'
-
-        path_to_embedding = os.path.join(embedding_root, embedding_name)
-        if os.path.exists(path_to_embedding):
-            feature_vector = pd.read_json(path_to_embedding, typ='series').tolist()
-            feature_vector = np.array(feature_vector)
-
-            train_features.append(feature_vector)
-            train_labels.append(label)
-            continue
-        
-        # else, let's go ahead and load the audio
-        audio, sr = torchaudio.load(path_to_audio)
-        audio = audio.detach().numpy()
-
-        # prepare audio
-        audio = downmix(audio)
-        audio = zero_pad(audio, sr * 1) # we need the audio to be at least 1s
-
-        feature_vector = preprocessor(audio, sr)
-
-        # save our feature vector
-        if not os.path.exists(embedding_root):
-            os.mkdir(embedding_root)
-        pd.Series(feature_vector).to_json(path_to_embedding)
-
-        train_features.append(feature_vector)
-        train_labels.append(label)
-
-    train_features = np.stack(train_features, axis=0)
-    train_labels = np.stack(train_labels, axis=0)
+    train_features, train_labels, label_indices = get_features_and_labels(train_loader, 
+                                    preprocessor=preprocessor,
+                                    embedding_root=os.path.join('embeddings', '1s_chunks', params['preprocessor']))
 
     # --------------------------------------------
     # USE WEIGHTS??!??!!
     # --------------------------------------------
     if params['fischer_reweighting']:
-        fischer_weights = do_fischer_reweighting(train_features, train_labels) 
+        print('doing fischer reweighting...')
+
+        fischer_weights = get_fischer_weights(train_features, train_labels) 
         train_features = np.array([fischer_weights * f for f in train_features])
+        dump(fischer_weights, f'{params["output_path"]}/{params["name"]}_fischer')
 
     # --------------------------------------------
     # CLASSIFIER SETUP AND PCA ON DATA
     # --------------------------------------------
 
     pca = PCA(n_components=params['pca_n_components'])
-    #TODO: standardize features prior to pca
-    X = pca.fit_transform(train_features, train_labels)
-    # X = train_features
+    X = pca.fit_transform(train_features)
+    dump(pca, f'{params["output_path"]}/{params["name"]}_pca')
 
     classifier = load_classifier(params['classifier'])
 
     # fit our classifier
     classifier.fit(X, train_labels)
+    dump(classifier, f'{params["output_path"]}/{params["name"]}')
 
-    test_features = []
-    test_labels  = []
-    for idx, sample in enumerate(val_loader):
-        if idx > int(0.7 * params['max_train']):
-            break
-        # remove batch dimension
-        sample = debatch(sample)
-        label = sample['label'].item()
-        path_to_audio = sample['path_to_audio']
-        filename = sample['filename']
-
-        # dynamically load embeddings!! (check if we already have it)
-        embedding_root = os.path.join('embeddings', params['preprocessor'])
-        embedding_name = filename[0:-4] + '.json'
-
-        path_to_embedding = os.path.join(embedding_root, embedding_name)
-        if os.path.exists(path_to_embedding):
-            feature_vector = pd.read_json(path_to_embedding, typ='series').tolist()
-            feature_vector = np.array(feature_vector)
-
-            test_features.append(feature_vector)
-            test_labels.append(label)
-            continue
-        
-        # else, let's go ahead and load the audio
-        audio, sr = torchaudio.load(path_to_audio)
-        audio = audio.detach().numpy()
-
-        # prepare audio
-        audio = downmix(audio)
-        audio = zero_pad(audio, sr * 1) # we need the audio to be at least 1s
-
-        feature_vector = preprocessor(audio, sr)
-
-        # save our feature vector
-        if not os.path.exists(embedding_root):
-            os.mkdir(embedding_root)
-        pd.Series(feature_vector).to_json(path_to_embedding)
-
-        test_features.append(feature_vector)
-        test_labels.append(label)
-
-    test_features = np.stack(test_features, axis=0)
-    test_labels = np.stack(test_labels, axis=0)
+    test_features, test_labels, label_indices = get_features_and_labels(val_loader,
+                                    preprocessor=preprocessor,
+                                    embedding_root=os.path.join('embeddings', '1s_chunks', params['preprocessor']))
 
     # --------------------------------------------
     # USE WEIGHTS??!??!!
@@ -311,12 +353,11 @@ def main(params):
         test_features = np.array([fischer_weights * f for f in test_features])
 
     # dim reduce our test set and predict
-    #TODO: standardize features prior to pca
     test_X = pca.transform(test_features)
-    # test_X = test_features
 
     # make our predictions
     test_predict = classifier.predict(test_X)
+
     # --------------------------------------------
     # VALIDATION
     # --------------------------------------------
@@ -327,10 +368,16 @@ def main(params):
     yp = test_predict
 
     m = sklearn.metrics.confusion_matrix(yt, yp)
+    save_confusion_matrix(m, label_indices, 
+                    save_path=os.path.join(params["output_path"], 'confusion_matrix.html')
+    )
+    pd.DataFrame(m).to_csv(os.path.join(params["output_path"], 'confusion_matrix.csv'))
+    pd.DataFrame(label_indices).to_csv(os.path.join(params["output_path"], 'label_indices.csv'))
+
     metrics['accuracy_score'] = sklearn.metrics.accuracy_score(yt, yp)
-    metrics['precision'] = sklearn.metrics.precision_score(yt, yp)
-    metrics['recall'] = sklearn.metrics.recall_score(yt, yp)
-    metrics['f1'] = sklearn.metrics.f1_score(yt, yp)
+    metrics['precision'] = sklearn.metrics.precision_score(yt, yp, average='macro')
+    metrics['recall'] = sklearn.metrics.recall_score(yt, yp, average='macro')
+    metrics['f1'] = sklearn.metrics.f1_score(yt, yp, average='macro')
 
     params['metrics'] = metrics
 
