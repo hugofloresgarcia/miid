@@ -42,7 +42,7 @@ a link to the original [conformer paper](https://arxiv.org/pdf/2005.08100.pdf) b
 
 Most systems I saw preprocessed their data using [mixup](http://arxiv.org/abs/1710.09412), among other things. [SpecAugment](https://arxiv.org/pdf/1904.08779.pdf) is also popular, though it seems to be more popular in the speech recognition community. 
 
-Another recurring technique in the literature is to use [multiple instance learning](https://doi.org/10.1016/j.artint.2013.06.003), where frame level predictions are pooled to produce a weak label.
+Another recurring technique in the literature is to do [multiple instance learning](https://doi.org/10.1016/j.artint.2013.06.003), where frame level predictions are pooled to produce a weak label.
 
 -
 
@@ -53,7 +53,7 @@ Augustin Arnault et al. won task 5. A link to their technical report [here](http
 Their best system used three embeddings:
 
 - a generic audio embedding pre-trained on [TalNet](https://arxiv.org/pdf/1810.09050.pdf). 
-	- In the TALNet paper, the authors compare MIL pooling functions and conclude that linear softmax pooling seems to perform best. 
+	- In the TALNet paper, the authors compare MIL pooling functions and conclude that linear softmax pooling seems to perform best for simultaneous audio tagging and localization, or any other multiple instance learning problem. 
 
 - a task-specific embedding (CNN -> Transformer)
 - a metadata embedding (Spatiotemporal Context)
@@ -62,6 +62,16 @@ These embeddings are then concatenated and used as input for a fully connected l
 
 --
 #### PANNs
-Kong et al. introduced PANNs in 2019 (Pretrained Audio Neural Networks). They use pretrained embeddings trained on Audioset (like VGGish), and then fine tune them for other tasks. A link to the paper [here](https://arxiv.org/pdf/1912.10211.pdf)
+Kong et al. introduced PANNs (Pretrained Audio Neural Networks) in a 2019 preprint (published July 2020). They use pretrained embeddings trained on Audioset (like VGGish), and then fine tune them for other tasks. A link to the paper [here](https://arxiv.org/pdf/1912.10211.pdf)
+
+- the PANN model uses a Wavegram architecture, which uses a interesting input representation:
+	- input repr 1: log mel spectrogram
+	- input repr 2: raw audio -> learned conv filterbank ("Wavegram")
+		- This is what I had asked you about a couple of weeks ago! Having a convnet learn it's own filters to create a domain-specific time-frequency embedding.
+	- these two representations are then concatenated and used as input for the rest of the model, which are just 2D conv layers.  
+- achieved state of the art on AudioSet
+
+
+- the [PANN embedding](https://github.com/qiuqiangkong/audioset_tagging_cnn) is open source, and might be worth a try!
 
 Iqbal et al. got second place in task 5 with a mean [ensemble of PANNs](http://dcase.community/documents/challenge2020/technical_reports/DCASE2020_Iqbal_38_t5.pdf)
