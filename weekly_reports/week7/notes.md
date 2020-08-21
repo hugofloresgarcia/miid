@@ -25,7 +25,7 @@ I'm planning on training a neural net this weekend.
 --
 The dataset is very clean (I'm pretty sure these audio samples are used in sample synths). All the audio files last anywhere between 0.5s and 5s. 
 
-
+--
 
 ### DCASE papers
 #### task 4: SED in domestic environments
@@ -44,7 +44,7 @@ Most systems I saw preprocessed their data using [mixup](http://arxiv.org/abs/17
 
 Another recurring technique in the literature is to do [multiple instance learning](https://doi.org/10.1016/j.artint.2013.06.003), where frame level predictions are pooled to produce a weak label.
 
--
+--
 
 ### task 5: Urban Sound Tagging with Spatiotemporal Context
 
@@ -61,6 +61,7 @@ Their best system used three embeddings:
 These embeddings are then concatenated and used as input for a fully connected layer. 
 
 --
+
 #### PANNs
 Kong et al. introduced PANNs (Pretrained Audio Neural Networks) in a 2019 preprint (published July 2020). They use pretrained embeddings trained on Audioset (like VGGish), and then fine tune them for other tasks. A link to the paper [here](https://arxiv.org/pdf/1912.10211.pdf)
 
@@ -71,7 +72,14 @@ Kong et al. introduced PANNs (Pretrained Audio Neural Networks) in a 2019 prepri
 	- these two representations are then concatenated and used as input for the rest of the model, which are just 2D conv layers.  
 - achieved state of the art on AudioSet
 
-
 - the [PANN embedding](https://github.com/qiuqiangkong/audioset_tagging_cnn) is open source, and might be worth a try!
 
 Iqbal et al. got second place in task 5 with a mean [ensemble of PANNs](http://dcase.community/documents/challenge2020/technical_reports/DCASE2020_Iqbal_38_t5.pdf)
+
+--
+
+### MusiCNN
+- for even more transfer learning, [MusiCNN](https://github.com/jordipons/musicnn) is an open source library with pre-trained, musically motivated embeddings. I believe it is also based on VGGish. An extended abstract for the library is [here](https://arxiv.org/pdf/1909.06654.pdf).  There is also a Medium article on it [here](https://towardsdatascience.com/musicnn-5d1a5883989b). 
+
+- The authors won best student paper at ISMIR 2018 for it: 
+	- [end to end learning for music audio tagging at scale](https://arxiv.org/pdf/1711.02520.pdf)
