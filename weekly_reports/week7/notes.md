@@ -1,11 +1,11 @@
 ### classifiers
-I trained a linear SVM on the philarmonia dataset (without percussion). The dataset consists of 19 musical instrument classes.  
+I trained a linear SVM on the philarmonia dataset (without percussion). The model has already been integrated into the audacity labeler. 
 
-experiment output:
+experiment setup:
 
-| exp_name | seed | preprocessor             | fischer_reweighting | pca n_components | classifier 
+| seed | preprocessor             | fischer_reweighting | pca n_components | classifier 
 |----------|------|--------------------------|---------------------|------------------|------------
-| exp      | 42   | openl3-mel256-6144-music | False               | 512              | svm-linear 
+| 42   | openl3-mel256-6144-music | False               | 512              | svm-linear 
 
 
 metrics:
@@ -19,10 +19,14 @@ the confusion matrix is [here](https://hugofloresgarcia.github.io/summer_milesto
 
 the normalized confusion matrix is [here](https://hugofloresgarcia.github.io/summer_milestones/runs/openl3_svm-linear_no-percussion/results/confusion_matrix_normalized.html)
 
+I'm planning on training a neural net this weekend. 
+
+--
+The dataset is very clean (I'm pretty sure these audio samples are used in sample synths). All the audio files last anywhere between 0.5s and 5s. 
+
+
 
 ### DCASE papers
-I haven't read all of these papers yet, but I'm working on it.
-
 #### task 4: SED in domestic environments
 
 Miyazaki, et al. won the DCASE 2020 task 4 (detection of sound events in domestic environments). Their top ranking models are a Conformer (Convolutional Transformer) and Transformer models. 
