@@ -8,7 +8,7 @@ import pytorch_lightning as pl
 
 class NN(nn.Module):
 
-    def __init__(self, input_size, hidden_size, output_size, 
+    def __init__(self, input_size, hidden_size, output_size,
                 num_epochs, learning_rate,):
         super().__init__()
         self.fc1 = nn.Linear(input_size, hidden_size)
