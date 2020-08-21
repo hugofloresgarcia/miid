@@ -4,9 +4,9 @@ I trained a linear SVM on the philarmonia dataset (without percussion). The mode
 experiment setup:
 
 
-| seed | preprocessor             | fischer_reweighting | pca n_components | classifier 
-|----------|------|--------------------------|---------------------|------------------|------------
-| 42   | openl3-mel256-6144-music | False               | 512              | svm-linear 
+| seed | preprocessor    | fischer_reweighting | pca n_components | classifier |
+|------|-----------------|---------------------|------------------|-----------|
+| 42   | openl3-mel256-6144-music | False   | 512          | svm-linear |
 
 
 metrics:
