@@ -1,7 +1,23 @@
 # musical instrument labeling experiments
 
-## weeks 7
-notes on /weekly_reports/week7/notes.md
+## week 8
+scaper: https://github.com/justinsalamon/scaper
+
+do overlap and add
+100db difference between the loudest sound and every point for silence
+
+similarity 
+1. overlap and add
+d
+bow to deal with silence and overlap? 
+
+todo for today:
+
+1. figure out the overlap and add problem (MIL? but think about the frame overlapped segments that will get more screen time)
+2. how to deal with silence? 
+3. how to deal with silence between sounds?
+4. try other embeddings (PANNs, MusiCNN)
+5. train a neural net to get class probabilities. 
 
 ## usage
 
@@ -14,13 +30,4 @@ download dataset audio files
 
 install requirements  
 `pip3 install -r requirements.txt`
-
-generate trial configs  
-`python3 generate_experiment.py -o path/to/my/experiment -g seed`
-
-run experiment  
-`python3 run_experiment.py -p path/to/my/experiment`
-
-generate boxplots and other analyses  
-`python3 compare_trials.py -p path/to/my/experiment -f independent_variable -m metrics_accuracy_score metrics_f1`
 
