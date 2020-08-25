@@ -1,0 +1,31 @@
+deps:
+- location: /Users/hugoffg/Documents/lab/summer
+  name: file:embeddings/
+  sources:
+  - file: embeddings/
+- location: /Users/hugoffg/Documents/lab/summer
+  name: file:labeler/
+  sources:
+  - file: labeler/
+- location: /Users/hugoffg/Documents/lab/summer
+  name: file:data/
+  sources:
+  - file: data/
+flag-null-labels: {}
+label-template: null
+op-cmd:
+  cmd-args:
+  - ${python_exe}
+  - -um
+  - guild.op_main
+  - train
+  - --
+  - __flag_args__
+  cmd-env:
+    FLAGS_DEST: globals
+    GUILD_PLUGINS: ''
+    PROJECT_DIR: /Users/hugoffg/Documents/lab/summer
+  flags-dest: globals
+output-scalars: null
+python-requires: null
+sourcecode-root: .guild/sourcecode

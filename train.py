@@ -10,6 +10,8 @@ from natsort import natsorted, ns
 from joblib import dump
 
 import labeler
+from labeler.audio_utils import downmix
+from labeler import audio_utils
 from labeler.preprocessors import ISED_Preprocessor, OpenL3, VGGish
 from philharmonia_dataset import PhilharmoniaSet, train_test_split, debatch
 
@@ -161,12 +163,6 @@ def dim_reduce(emb, labels, save_path, n_components=3, method='umap', title=''):
     fig.write_html(save_path)
     return proj
 
-def downmix(audio):
-    # downmix if needed
-    if audio.ndim == 2:
-        audio = audio.mean(axis=0)
-    return audio
-
 def get_features_and_labels(dataloader, preprocessor, embedding_root):
     """ compute preprocessor features and get labels from dataloader
 
@@ -220,7 +216,12 @@ def get_features_and_labels(dataloader, preprocessor, embedding_root):
         audio = downmix(audio)
         audio = zero_pad(audio, sr * 1) # we need the audio to be at least 1s
 
-        feature_vector = preprocessor(audio, sr)
+        # split out audio on silence
+        audio_list, intervals = audio_utils.split_on_silence(audio)
+
+        # this takes every split audio clip, preprocesses them and puts embeddings in an array shape (Frame, Feature)
+        feature_vector = [preprocessor(aud, sr) for aud in audio_list]
+        feature_vector = np.concatenate(feature_vector, axis=0)
 
         # save our feature vector
         if not os.path.exists(embedding_root):
@@ -334,7 +335,7 @@ def run_exp(
     # now, train our ised model
     train_features, train_labels, label_indices = get_features_and_labels(train_loader, 
                                     preprocessor=preprocessor,
-                                    embedding_root=os.path.join('embeddings', '1s_chunks', preprocessor_name))
+                                    embedding_root=os.path.join('embeddings', 'silence_split', preprocessor_name))
 
     train_data_stats = get_dataset_stats(train_labels, label_indices)
     pd.DataFrame(train_data_stats).to_csv(
@@ -372,7 +373,7 @@ def run_exp(
     test_features, test_labels, label_indices = get_features_and_labels(
                                     dataloader=val_loader,
                                     preprocessor=preprocessor,
-                                    embedding_root=os.path.join('embeddings', '1s_chunks', preprocessor_name))
+                                    embedding_root=os.path.join('embeddings', 'silence_split', preprocessor_name))
 
     test_data_stats = get_dataset_stats(test_labels, label_indices)
     pd.DataFrame(test_data_stats).to_csv(
@@ -434,10 +435,8 @@ def run_exp(
         fischer_reweighting=fischer_reweighting,
         pca_n_components=pca_n_components,
         classifier=classifier_name,
-        metrics=metrics
+        **metrics
     )
-
-    output = labeler.utils.flatten_dict(output)
 
     # timing
     toc = time.time()

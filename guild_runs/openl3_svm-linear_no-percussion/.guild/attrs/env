@@ -1,0 +1,49 @@
+CMD_DIR: /Users/hugoffg/Documents/lab/summer
+COLORTERM: truecolor
+FLAGS_DEST: globals
+FLAG_CLASSES: no_percussion
+FLAG_CLASSIFIER_NAME: svm-linear
+FLAG_EXP_NAME: exp
+FLAG_FISCHER_REWEIGHTING: '0'
+FLAG_OUTPUT_PATH: results
+FLAG_PCA_N_COMPONENTS: '512'
+FLAG_PREPROCESSOR_NAME: openl3-mel256-6144-music
+FLAG_RANDOM_SEED: '42'
+FLAG_VAL_SPLIT: '0.3'
+GIT_ASKPASS: /Applications/Visual Studio Code.app/Contents/Resources/app/extensions/git/dist/askpass.sh
+GUILD_HOME: /Users/hugoffg/Documents/lab/summer/venv/.guild
+GUILD_OP: train
+GUILD_PLUGINS: ''
+GUILD_SOURCECODE: .guild/sourcecode
+HOME: /Users/hugoffg
+LANG: en_US.UTF-8
+LD_LIBRARY_PATH: /usr/local/cellar/jack/0.125.0_4/lib/
+LIBRARY_PATH: :/usr/local/cellar/jack/0.125.0_4/lib/:/usr/local/cellar/jack/0.125.0_4/lib/
+LOGNAME: hugoffg
+LOG_LEVEL: '20'
+ORIGINAL_XDG_CURRENT_DESKTOP: undefined
+PATH: /Users/hugoffg/Documents/lab/summer/venv/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Library/TeX/texbin:/Library/Apple/usr/bin:/Users/hugoffg/vimide:/Users/hugoffg/vimide
+PROJECT_DIR: /Users/hugoffg/Documents/lab/summer
+PS1: '(venv) \[\e[31m\]\u is at \W: \[\e[0m\]\[\e[36m\]>:-) \[\e[0m\] '
+PWD: /Users/hugoffg/Documents/lab/summer
+PYTHONPATH: .guild/sourcecode:/Users/hugoffg/Documents/lab/summer/venv/lib/python3.7/site-packages/guild/external:/Users/hugoffg/Documents/lab/summer/venv/lib/python3.7/site-packages
+RUN_DIR: /Users/hugoffg/Documents/lab/summer/venv/.guild/runs/6291e572eecc4b7fb0dd0ba9916d7407
+RUN_ID: 6291e572eecc4b7fb0dd0ba9916d7407
+SHELL: /bin/bash
+SHLVL: '2'
+SSH_AUTH_SOCK: /private/tmp/com.apple.launchd.IKWlrzAByx/Listeners
+TERM: xterm-256color
+TERM_PROGRAM: vscode
+TERM_PROGRAM_VERSION: 1.48.0
+TMPDIR: /var/folders/vl/n_1wx0vx41s979274z7hctnr0000gn/T/
+USER: hugoffg
+VIRTUAL_ENV: /Users/hugoffg/Documents/lab/summer/venv
+VSCODE_GIT_ASKPASS_MAIN: /Applications/Visual Studio Code.app/Contents/Resources/app/extensions/git/dist/askpass-main.js
+VSCODE_GIT_ASKPASS_NODE: /Applications/Visual Studio Code.app/Contents/Frameworks/Code
+  Helper (Renderer).app/Contents/MacOS/Code Helper (Renderer)
+VSCODE_GIT_IPC_HANDLE: /var/folders/vl/n_1wx0vx41s979274z7hctnr0000gn/T/vscode-git-98d79d5404.sock
+WX_CONFIG: /usr/local/x86_64/bin/wx-config
+XPC_FLAGS: '0x0'
+XPC_SERVICE_NAME: '0'
+__CF_USER_TEXT_ENCODING: 0x1F5:0x0:0x0
+__PYVENV_LAUNCHER__: /Users/hugoffg/Documents/lab/summer/venv/bin/python

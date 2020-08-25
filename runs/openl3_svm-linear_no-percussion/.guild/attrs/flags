@@ -1,9 +1,0 @@
-classes: no_percussion
-classifier_name: svm-linear
-exp_name: exp
-fischer_reweighting: false
-output_path: results
-pca_n_components: 512
-preprocessor_name: openl3-mel256-6144-music
-random_seed: 42
-val_split: 0.3
