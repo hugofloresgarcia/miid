@@ -24,5 +24,22 @@ def split_on_silence(audio, top_db=80):
     split_audio = [audio[i[0]:i[1]] for i in intervals]
 
     return split_audio, intervals
+   
+    
+def zero_pad(audio, length):
+    """
+    zero pad audio left and right to match length
+    audio must be shape (N,) (mono)
+    """
+    assert audio.ndim == 1
+    if len(audio) < length:
+        pad_length = length - len(audio)
+        pad_right = int(np.floor(pad_length/2))
+        pad_left = int(np.ceil(pad_length/2))
 
+        audio = np.pad(audio, (pad_left, pad_right), 'constant', constant_values=(0, 0))
+    
+    assert len(audio) >= length
+    
+    return audio
     

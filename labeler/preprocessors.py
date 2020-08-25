@@ -7,6 +7,32 @@ import openl3
 import torch
 import numpy as np
 
+def load_preprocessor(name: str):
+    if name == 'vggish':
+        model = VGGish()
+    elif name == 'ised': # bongjun's ised model
+        model = ISED_Preprocessor(
+            sr=8000,
+            mfcc_kwargs=dict(
+                log_mels=False, 
+                n_mfcc=13
+            ),
+            normalize=False
+        )
+    elif 'openl3' in name:
+        params = name.split('-')
+        # this fixes all the memory leakage coming from loading an openl3 model
+        if name in OpenL3.models:
+            return OpenL3.models[name]
+        model = OpenL3(
+            input_repr=params[1],
+            embedding_size=int(params[2]), 
+            content_type=params[3], 
+        )
+        OpenL3.models[name] = model
+    else:
+        raise ValueError(f"couldn't find preprocessor name {name}")
+    return model
 
 class ISED_Preprocessor:
     def __init__(self, sr, mfcc_kwargs, normalize=False):

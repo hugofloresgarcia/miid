@@ -69,3 +69,25 @@ def compute_features(audio, old_sr, sr, mfcc_kwargs, normalize=False):
         feats = (feats - feats.mean()) / feats.std()
 
     return utils.assert_numpy(feats)
+
+def get_fischer_weights(features, labels):
+
+    p = [feature for feature, label in zip(features, labels) if label == 1]
+    n = [feature for feature, label in zip(features, labels) if label == 0]
+    p = np.array(p)
+    n = np.array(n)
+
+    weights = (p.mean(axis=0) ** 2 - n.mean(axis=0) ** 2) / \
+                                  (p.std(axis=0) ** 2 + n.std(axis=0) ** 2)
+
+    # VGGISH FIX
+    # TODO: the last element in the vggish embedding is always 255. (why)
+    #   this breaks fischer's criterion because the std deviation
+    #   will always be 0, so you end up dividing by 0
+    #   I'm currently replacing the nan by 0 (meaning that the feature will
+    #   have no weight at all). should I be doing this?
+    for i, w in enumerate(weights): 
+        if np.isnan(w):
+            weights[i] = 0
+
+    return weights

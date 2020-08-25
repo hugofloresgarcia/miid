@@ -10,46 +10,24 @@ from natsort import natsorted, ns
 from joblib import dump
 
 import labeler
-from labeler.audio_utils import downmix
 from labeler import audio_utils
-from labeler.preprocessors import ISED_Preprocessor, OpenL3, VGGish
+from labeler.preprocessors import load_preprocessor
+from labeler.core import get_fischer_weights
 from philharmonia_dataset import PhilharmoniaSet, train_test_split, debatch
 
 import json
 import pandas as pd
 import sklearn.metrics
 
-import plotly.express as px
-import plotly.figure_factory as ff
-
 import umap
 from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA
 
+import plotly.express as px
+import plotly.figure_factory as ff
+
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
-
-def get_fischer_weights(features, labels):
-
-    p = [feature for feature, label in zip(features, labels) if label == 1]
-    n = [feature for feature, label in zip(features, labels) if label == 0]
-    p = np.array(p)
-    n = np.array(n)
-
-    weights = (p.mean(axis=0) ** 2 - n.mean(axis=0) ** 2) / \
-                                  (p.std(axis=0) ** 2 + n.std(axis=0) ** 2)
-
-    # VGGISH FIX
-    # TODO: the last element in the vggish embedding is always 255. (why)
-    #   this breaks fischer's criterion because the std deviation
-    #   will always be 0, so you end up dividing by 0
-    #   I'm currently replacing the nan by 0 (meaning that the feature will
-    #   have no weight at all). should I be doing this?
-    for i, w in enumerate(weights): 
-        if np.isnan(w):
-            weights[i] = 0
-
-    return weights
 
 def load_classifier(name: str):
     if 'svm' in name:
@@ -70,44 +48,6 @@ def load_classifier(name: str):
         return classifier
     else:
         raise ValueError(f"couldn't find classifier name: {name}")
-
-def load_preprocessor(name: str):
-    if name == 'vggish':
-        model = VGGish()
-    elif name == 'ised': # bongjun's ised model
-        model = ISED_Preprocessor(
-            sr=8000,
-            mfcc_kwargs=dict(
-                log_mels=False, 
-                n_mfcc=13
-            ),
-            normalize=False
-        )
-    elif 'openl3' in name:
-        params = name.split('-')
-        # this fixes all the memory leakage coming from loading an openl3 model
-        if name in OpenL3.models:
-            return OpenL3.models[name]
-        model = OpenL3(
-            input_repr=params[1],
-            embedding_size=int(params[2]), 
-            content_type=params[3], 
-        )
-        OpenL3.models[name] = model
-    else:
-        raise ValueError(f"couldn't find preprocessor name {name}")
-    return model
-
-def zero_pad(audio, length):
-    """
-    make sure audio is at least 1 second long
-    """
-    if audio.shape[0] < length:
-        l = audio.shape[0]
-        z = np.zeros(length - l)
-        audio = np.concatenate([audio, z])
-
-    return audio
 
 def dim_reduce(emb, labels, save_path, n_components=3, method='umap', title=''):
     """
@@ -163,7 +103,7 @@ def dim_reduce(emb, labels, save_path, n_components=3, method='umap', title=''):
     fig.write_html(save_path)
     return proj
 
-def get_features_and_labels(dataloader, preprocessor, embedding_root):
+def compute_embeddings(dataloader, preprocessor, embedding_root):
     """ compute preprocessor features and get labels from dataloader
 
     params:
@@ -213,8 +153,8 @@ def get_features_and_labels(dataloader, preprocessor, embedding_root):
         audio = audio.detach().numpy()
 
         # prepare audio
-        audio = downmix(audio)
-        audio = zero_pad(audio, sr * 1) # we need the audio to be at least 1s
+        audio = audio_utils.downmix(audio)
+        audio = audio_utils.zero_pad(audio, sr * 1) # we need the audio to be at least 1s
 
         # split out audio on silence
         audio_list, intervals = audio_utils.split_on_silence(audio)
@@ -288,7 +228,7 @@ output_path = 'results'
 exp_name = 'exp'
 fischer_reweighting = False
 
-def run_exp(
+def train_sklearn_classifier(
         classes='no_percussion',
         preprocessor_name='openl3-mel256-6144-music',
         classifier_name='svm-linear',
@@ -333,7 +273,7 @@ def run_exp(
     # --------------------------------------------
 
     # now, train our ised model
-    train_features, train_labels, label_indices = get_features_and_labels(train_loader, 
+    train_features, train_labels, label_indices = compute_embeddings(train_loader, 
                                     preprocessor=preprocessor,
                                     embedding_root=os.path.join('embeddings', 'silence_split', preprocessor_name))
 
@@ -370,7 +310,7 @@ def run_exp(
     # VALIDATION
     # --------------------------------------------
 
-    test_features, test_labels, label_indices = get_features_and_labels(
+    test_features, test_labels, label_indices = compute_embeddings(
                                     dataloader=val_loader,
                                     preprocessor=preprocessor,
                                     embedding_root=os.path.join('embeddings', 'silence_split', preprocessor_name))
@@ -406,6 +346,7 @@ def run_exp(
     save_confusion_matrix(m, label_indices, 
                     save_path=os.path.join(output_path, 'confusion_matrix.html')
     )
+    
     m_norm = sklearn.metrics.confusion_matrix(yt, yp, normalize='true')
     m_norm = np.around(m_norm, 3)
     save_confusion_matrix(m_norm, label_indices, 
@@ -448,9 +389,10 @@ def run_exp(
 
     return output
 
+
 if __name__ == "__main__":
 
-    run_exp(
+    train_sklearn_classifier(
         classes=classes, 
         preprocessor_name=preprocessor_name, 
         classifier_name=classifier_name, 

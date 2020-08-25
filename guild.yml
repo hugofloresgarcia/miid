@@ -1,21 +1,52 @@
-train:
-  requires:
-    - file: embeddings/
-    - file: labeler/
-    - file: data/
-  description: train a classifier 
-  main: train
-  flags:
-    classes: no_percussion
-    preprocessor_name: openl3-mel256-6144-music
-    classifier_name: svm-linear
-    pca_n_components: 512
-    val_split: 0.3
-    random_seed: 42
-    output_path: results
-    exp_name: exp
-    fischer_reweighting: False
-  sourcecode: 
-      - '*.py'
+- model: sklearn
+  operations:
+    train:
+      requires:
+        - file: embeddings/
+        - file: labeler/
+        - file: data/
+      description: train a classifier 
+      main: train
+      flags:
+        classes: no_percussion
+        preprocessor_name: openl3-mel256-6144-music
+        classifier_name: svm-linear
+        pca_n_components: 512
+        val_split: 0.3
+        random_seed: 42
+        output_path: results
+        exp_name: exp
+        fischer_reweighting: False
+      sourcecode: 
+          - '*.py'
 
+- model:  nn
+  operations: 
+    train:
+      requires:
+        - file: embeddings/
+        - file: labeler/
+        - file: data/
+      description: train model
+      main: train_torch_model
+      flags:
+        # MODEL ARGS
+        num_epochs: 500
+        learning_rate: 1e-3
+        random_seed: 42
+        train_split: 0.6
+        val_split: 0.2
+        test_split: 0.2
+        batch_size: 128
 
+        # EARLY STOPPING
+        monitor: 'val_loss'
+        min_delta: '1e-5'
+        patience: 5
+        verbose: True
+
+        # CHECKPOINTS
+        checkpoint_dir: 'checkpoints'
+      sourcecode:
+          - '*.py'
+          - checkpoints
