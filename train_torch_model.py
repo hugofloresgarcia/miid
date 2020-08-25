@@ -87,7 +87,8 @@ class NN(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         X, y = batch['embedding'], batch['one_hot']
-        y = torch.argmax(y, dim=1, keepdim=False) # for nll loss
+        # for nll loss
+        y = torch.argmax(y, dim=1, keepdim=False)
 
         X = self.preprocess(X)
 
@@ -96,8 +97,11 @@ class NN(pl.LightningModule):
         logits = self.forward(X)
         loss = self.cross_entropy_loss(logits, y)
 
-        print(f'train_loss: {loss}')
-        return pl.TrainResult(loss)
+        result = pl.TrainResult(minimize=loss)
+        result.log('train_loss', loss, prog_bar=True)
+
+        return result
+
 
     def validation_step(self, batch, batch_idx):
         X, y = batch['embedding'], batch['one_hot']
@@ -107,17 +111,12 @@ class NN(pl.LightningModule):
         logits = self.forward(X)
         loss = self.cross_entropy_loss(logits, y)
 
-        max_idx = torch.argmax(logits, 0, keepdim=True)
-        yhat = torch.zeros(logits.shape)
-        yhat.scatter_(0, max_idx, 1)
+        yhat = torch.argmax(logits, dim=1, keepdim=False)
         accuracy = pl.metrics.functional.accuracy(yhat, y)
 
-        print(f'val_loss: {loss}')
         result = pl.EvalResult(checkpoint_on=loss)
-        result.log_dict({
-            'val_acc': accuracy,
-            'val_loss': loss
-        })
+        result.log('val_accuracy', accuracy, on_epoch=True, on_step=False, prog_bar=True)
+        result.log('val_loss', loss, prog_bar=True)
         return result
 
     def prepare_data(self):
@@ -196,7 +195,6 @@ def train(
         train_val_test_split=train_val_test_split,
         batch_size=batch_size
     )
-    
 
     early_stopping = pl.callbacks.EarlyStopping(
         monitor='val_loss', 
@@ -205,14 +203,14 @@ def train(
         verbose=True
     )
 
-    checkpoint_callback = pl.callbacks.model_checkpoint.ModelCheckpoint(
-        filepath=checkpoint_dir, 
-    )
-
     trainer = pl.Trainer(
         early_stop_callback=early_stopping, 
-        checkpoint_callback=checkpoint_callback, 
-        fast_dev_run=True)
+        # checkpoint_callback=checkpoint_callback, 
+        fast_dev_run=False)
+
+    if os.path.exists(checkpoint_dir):
+        print(f'loading checkpoint: {checkpoint_dir}')
+        trainer =  pl.Trainer(resume_from_checkpoint=checkpoint_dir)
 
     trainer.fit(model)
 

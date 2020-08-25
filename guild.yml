@@ -23,10 +23,12 @@
 - model:  nn
   operations: 
     train:
+      output-scalars: off
       requires:
         - file: embeddings/
         - file: labeler/
         - file: data/
+        - file: checkpoints/
       description: train model
       main: train_torch_model
       flags:
@@ -46,7 +48,7 @@
         verbose: True
 
         # CHECKPOINTS
-        checkpoint_dir: 'checkpoints'
+        checkpoint_dir: './checkpoints/epoch=39.ckpt'
       sourcecode:
           - '*.py'
           - checkpoints

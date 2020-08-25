@@ -1,14 +1,22 @@
 # musical instrument labeling experiments
 
 ## week 8
-scaper: https://github.com/justinsalamon/scaper
 
-do overlap and add
-100db difference between the loudest sound and every point for silence
+### things i've done so far
 
-similarity 
-1. overlap and add
-d
+- currently training a neural net for classifying instruments
+- pipeline:
+    - split audio clips by removing silence (80 dB lower than max frame) 
+    - 
+
+
+things to do:   
+
+- augment data using scaper
+- add batchnorm
+- prediction framerate? 
+
+
 bow to deal with silence and overlap? 
 
 todo for today:
