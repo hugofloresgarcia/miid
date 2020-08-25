@@ -28,7 +28,6 @@
         - file: embeddings/
         - file: labeler/
         - file: data/
-        - file: checkpoints/
       description: train model
       main: train_torch_model
       flags:
@@ -40,15 +39,7 @@
         val_split: 0.2
         test_split: 0.2
         batch_size: 128
-
-        # EARLY STOPPING
-        monitor: 'val_loss'
-        min_delta: '1e-5'
-        patience: 5
+        
         verbose: True
-
-        # CHECKPOINTS
-        checkpoint_dir: './checkpoints/epoch=39.ckpt'
       sourcecode:
           - '*.py'
-          - checkpoints

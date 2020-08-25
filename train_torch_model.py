@@ -63,7 +63,7 @@ class NN(pl.LightningModule):
         self.batch_size = batch_size
         self.dropout_p = dropout
 
-        torch.manual_seed(random_seed)
+        pl.seed_everything(random_seed)
 
     def forward(self, x):
 
@@ -148,7 +148,6 @@ class NN(pl.LightningModule):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
         return optimizer
 
-
 # ------------------
 # | HYPERPARAMETERS |
 # ------------------
@@ -162,15 +161,6 @@ val_split = 0.2
 test_split = 0.2
 batch_size = 128
 
-# EARLY STOPPING
-monitor = 'val_loss'
-min_delta = '1e-5'
-patience = 5
-verbose = True
-
-# CHECKPOINTS
-checkpoint_dir = os.path.join(os.getcwd(), 'checkpoints')
-
 def train(
             # MODEL ARGS
             num_epochs=num_epochs, 
@@ -178,15 +168,8 @@ def train(
             random_seed=random_seed,
             train_val_test_split=np.array([0.6, 0.2, 0.2]),
             batch_size=batch_size, 
-
-            # EARLY STOPPING 
-            monitor='val_loss', 
-            min_delta='1e-5', 
-            patience=5, 
-            verbose=True,
-            
-            # CHECKPOINTS
-            checkpoint_dir=checkpoint_dir):
+ 
+            verbose=True):
 
     model = NN(
         num_epochs=num_epochs, 
@@ -200,17 +183,24 @@ def train(
         monitor='val_loss', 
         min_delta='1e-5', 
         patience=5, 
-        verbose=True
+        verbose=verbose,
+    )
+
+    checkpoint_callback = pl.callbacks.ModelCheckpoint(
+        filepath=os.path.join(os.getcwd(), 'checkpoints'), 
+        monitor='val_loss', 
+        verbose=verbose
     )
 
     trainer = pl.Trainer(
+        default_root_dir=os.path.join(os.getcwd(), 'logs'),
         early_stop_callback=early_stopping, 
-        # checkpoint_callback=checkpoint_callback, 
+        checkpoint_callback=checkpoint_callback, 
         fast_dev_run=False)
 
-    if os.path.exists(checkpoint_dir):
-        print(f'loading checkpoint: {checkpoint_dir}')
-        trainer =  pl.Trainer(resume_from_checkpoint=checkpoint_dir)
+    # if os.path.exists(checkpoint_dir):
+    #     print(f'loading checkpoint: {checkpoint_dir}')
+    #     trainer =  pl.Trainer(resume_from_checkpoint=checkpoint_dir)
 
     trainer.fit(model)
 
@@ -223,12 +213,5 @@ if __name__ == "__main__":
         train_val_test_split=np.array([train_split, val_split, test_split]),
         batch_size=batch_size, 
 
-        # EARLY STOPPING 
-        monitor='val_loss', 
-        min_delta='1e-5', 
-        patience=5, 
-        verbose=True,
-        
-        # CHECKPOINTS
-        checkpoint_dir=checkpoint_dir
+        verbose=True
     )
