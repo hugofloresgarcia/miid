@@ -31,15 +31,11 @@
       description: train model
       main: train_torch_model
       flags:
-        # MODEL ARGS
-        num_epochs: 500
+        num_epochs: 70
         learning_rate: 1e-3
         random_seed: 42
-        train_split: 0.6
-        val_split: 0.2
-        test_split: 0.2
         batch_size: 128
-        
+
         verbose: True
       sourcecode:
           - '*.py'
