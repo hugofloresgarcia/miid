@@ -1,14 +1,15 @@
 # musical instrument labeling experiments
 
 ## week 8
-
+notes in /weekly_reports/week8/notes.md
 
 ### things i've done so far
 
 - currently training a neural net for classifying instruments
 - pipeline:
     - split audio clips by removing silence (80 dB lower than max frame) 
-    - 
+    - openl3 embedding
+    - neural net
 
 
 things to do:   
