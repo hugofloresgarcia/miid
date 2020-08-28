@@ -6,6 +6,113 @@ import os
 import yaml
 import collections
 
+#---------------------#
+#     PLOT UTILS
+#---------------------#
+def smart_plotly_export(fig, save_path):
+    img_format = save_path.split('.')[-1]
+    if img_format == 'html':
+        fig.write_html(save_path)
+    elif img_format == 'bytes':
+        return fig.to_image(format='png')
+    #TODO: come back and make this prettier
+    elif img_format == 'numpy':
+        import io 
+        from PIL import Image
+
+        def plotly_fig2array(fig):
+            #convert Plotly fig to  an array
+            fig_bytes = fig.to_image(format="png", width=1200, height=700)
+            buf = io.BytesIO(fig_bytes)
+            img = Image.open(buf)
+            return np.asarray(img)
+        
+        return plotly_fig2array(fig)
+    elif img_format == 'jpeg' or 'png' or 'webp':
+        fig.write_image(save_path)
+
+def save_confusion_matrix(m, labels, save_path=None):
+    import plotly.figure_factory as ff
+
+    x = labels
+    y = labels
+
+    # change each element of z to type string for annotations
+    m_text = [[str(y) for y in x] for x in m]
+
+    # set up figure 
+    fig = ff.create_annotated_heatmap(m, x=x, y=y, annotation_text=m_text, colorscale='Viridis')
+
+    # add title
+    fig.update_layout(title_text='<b>Confusion matrix</b>')
+
+    # adjust margins to make room for yaxis title
+    fig.update_layout(margin=dict(t=50, l=200))
+
+    # add colorbar
+    fig['data'][0]['showscale'] = True
+
+    return smart_plotly_export(fig, save_path)
+    
+def dim_reduce(emb, labels, save_path, n_components=3, method='umap', title=''):
+    """
+    dimensionality reduction for visualization!
+    saves an html plotly figure to save_path
+    parameters:
+        emb (np.ndarray): the samples to be reduces with shape (samples, features)
+        labels (list): list of labels for embedding
+        save_path (str): path where u wanna save ur figure
+        method (str): umap, tsne, or pca
+        title (str): title for ur figure
+    returns:    
+        proj (np.ndarray): projection vector with shape (samples, dimensions)
+    """
+    if method == 'umap':
+        reducer = umap.UMAP(n_components=n_components)
+    elif method == 'tsne':
+        reducer = TSNE(n_components=n_components)
+    elif method == 'pca':
+        reducer = PCA(n_components=n_components)
+    else:
+        raise ValueError
+ 
+    proj = reducer.fit_transform(emb)
+
+    if n_components == 2:
+        df = pd.DataFrame(dict(
+            x=proj[:, 0],
+            y=proj[:, 1],
+            instrument=labels
+        ))
+        fig = px.scatter(df, x='x', y='y', color='instrument',
+                        title=title_prefix+f"_{method}")
+
+    elif n_components == 3:
+        df = pd.DataFrame(dict(
+            x=proj[:, 0],
+            y=proj[:, 1],
+            z=proj[:, 2],
+            instrument=labels
+        ))
+        fig = px.scatter_3d(df, x='x', y='y', z='z',
+                        color='instrument',
+                        title=title)
+    else:
+        raise ValueError("cant plot more than 3 components")
+
+    fig.update_traces(marker=dict(size=6,
+                                  line=dict(width=1,
+                                            color='DarkSlateGrey')),
+                      selector=dict(mode='markers'))
+
+    return smart_plotly_export(fig, save_path)
+
+
+
+#---------------------#
+#     GENERAL UTILS
+#---------------------#
+
 def flatten_dict(d, parent_key='', sep='_'):
     """
     took this from

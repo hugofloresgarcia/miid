@@ -2,6 +2,7 @@
 
 ## week 8
 
+
 ### things i've done so far
 
 - currently training a neural net for classifying instruments

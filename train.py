@@ -11,6 +11,7 @@ from joblib import dump
 
 import labeler
 from labeler import audio_utils
+from labeler.utils import save_confusion_matrix, dim_reduce
 from labeler.preprocessors import load_preprocessor
 from labeler.core import get_fischer_weights
 from philharmonia_dataset import PhilharmoniaSet, train_test_split, debatch
@@ -48,60 +49,6 @@ def load_classifier(name: str):
         return classifier
     else:
         raise ValueError(f"couldn't find classifier name: {name}")
-
-def dim_reduce(emb, labels, save_path, n_components=3, method='umap', title=''):
-    """
-    dimensionality reduction for visualization!
-    saves an html plotly figure to save_path
-    parameters:
-        emb (np.ndarray): the samples to be reduces with shape (samples, features)
-        labels (list): list of labels for embedding
-        save_path (str): path where u wanna save ur figure
-        method (str): umap, tsne, or pca
-        title (str): title for ur figure
-    returns:    
-        proj (np.ndarray): projection vector with shape (samples, dimensions)
-    """
-    if method == 'umap':
-        reducer = umap.UMAP(n_components=n_components)
-    elif method == 'tsne':
-        reducer = TSNE(n_components=n_components)
-    elif method == 'pca':
-        reducer = PCA(n_components=n_components)
-    else:
-        raise ValueError
- 
-    proj = reducer.fit_transform(emb)
-
-    if n_components == 2:
-        df = pd.DataFrame(dict(
-            x=proj[:, 0],
-            y=proj[:, 1],
-            instrument=labels
-        ))
-        fig = px.scatter(df, x='x', y='y', color='instrument',
-                        title=title_prefix+f"_{method}")
-
-    elif n_components == 3:
-        df = pd.DataFrame(dict(
-            x=proj[:, 0],
-            y=proj[:, 1],
-            z=proj[:, 2],
-            instrument=labels
-        ))
-        fig = px.scatter_3d(df, x='x', y='y', z='z',
-                        color='instrument',
-                        title=title)
-    else:
-        raise ValueError("cant plot more than 3 components")
-
-    fig.update_traces(marker=dict(size=6,
-                                  line=dict(width=1,
-                                            color='DarkSlateGrey')),
-                      selector=dict(mode='markers'))
-
-    fig.write_html(save_path)
-    return proj
 
 def compute_embeddings(dataloader, preprocessor, embedding_root):
     """ compute preprocessor features and get labels from dataloader
@@ -180,28 +127,6 @@ def compute_embeddings(dataloader, preprocessor, embedding_root):
     labels = np.stack(labels, axis=0)
 
     return features, labels, [v for k,v in sorted(label_indices.items(), key=lambda x: x[0])]
-
-def save_confusion_matrix(m, labels, save_path):
-    import plotly.figure_factory as ff
-
-    x = labels
-    y = labels
-
-    # change each element of z to type string for annotations
-    m_text = [[str(y) for y in x] for x in m]
-
-    # set up figure 
-    fig = ff.create_annotated_heatmap(m, x=x, y=y, annotation_text=m_text, colorscale='Viridis')
-
-    # add title
-    fig.update_layout(title_text='<b>Confusion matrix</b>')
-
-    # adjust margins to make room for yaxis title
-    fig.update_layout(margin=dict(t=50, l=200))
-
-    # add colorbar
-    fig['data'][0]['showscale'] = True
-    fig.write_html(save_path)
 
 def get_dataset_stats(labels, label_indices):
     """

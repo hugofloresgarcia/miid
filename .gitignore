@@ -10,3 +10,4 @@
 /openl3/
 /venv/
 /embeddings/
+*.ckpt
