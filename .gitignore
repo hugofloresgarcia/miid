@@ -11,3 +11,6 @@
 /venv/
 /embeddings/
 *.ckpt
+
+*.egg-info
+.vscode
